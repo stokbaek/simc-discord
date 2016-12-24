@@ -46,4 +46,5 @@ finger2=,id=142520,enchant_id=5428,bonus_id=3467/1492/3337
 trinket1=,id=137301,bonus_id=3509/1532/3336
 trinket2=,id=142157,bonus_id=41/3453/1472
 main_hand=,id=128941,bonus_id=749,relic_id=3506:1482/3467:1477/3453:1472,gem_id=0/0/0/0
-DONE```
+DONE
+```
