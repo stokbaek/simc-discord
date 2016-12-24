@@ -1,0 +1,2 @@
+serverid = ID
+TOKEN = 'TOKEN'
