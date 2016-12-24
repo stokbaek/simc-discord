@@ -2,18 +2,26 @@
 SimulationCraft Bot for discord.
 
 ***Help for simulation through Discord:***
+
 ***Options:***
--c	-character 	**InGame name**
--r	-realm		**Realm** *(Default is Magtheridon)*
--s	-scale		**yes/no** *(Default is no)*
--d	-data		**armory/addon** *(Default is armory)*
- * Simulate using armory with stat scaling:
+```
+-c	-character	InGame name
+-r	-realm		Realm (Default is Magtheridon)
+-s	-scale		yes/no (Default is no)
+-d	-data		armory/addon (Default is armory)
+```
+* Simulate using armory with stat scaling:
+
 `!simc -character NAME -scale yes`
- * Simulate using addon without stat scaling:
+* Simulate using addon without stat scaling:
+
 `!simc -character NAME -d addon`
+
 *The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain DONE.*
+
 example
-```warlock="Stokbaek"
+```
+warlock="Stokbaek"
 level=110
 race=goblin
 region=eu
