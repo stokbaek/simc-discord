@@ -78,9 +78,6 @@ async def on_message(message):
                     elif args[i].startswith(('d ', 'data ')):
                         temp = args[i].split()
                         data = temp[1]
-                    else:
-                        await bot.send_message(message.channel, 'Unkown command(s).')
-                        return
                 if server.me.status != discord.Status.online:
                     err_msg = 'Only one simulation can run at the same time.'
                     await bot.send_message(message.channel, err_msg)
