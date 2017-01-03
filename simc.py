@@ -42,7 +42,7 @@ async def check(addon_data):
 
 @bot.event
 async def on_message(message):
-    server = bot.get_server(user_opt['server_opt']['serverid'])
+    server = bot.get_server(user_opt['server_opt'][0]['serverid'])
     loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
     realm = 'magtheridon'
@@ -52,6 +52,9 @@ async def on_message(message):
     char = 'Dummy'
     addon = 'Dummy'
 
+    if message.channel != user_opt['server_opt'][0]['channelid']:
+        await bot.send_message(message.channel, 'Please use the correct channel.')
+        return
     if message.author == bot.user:
         return
     if message.content.startswith('!simc'):
@@ -74,6 +77,9 @@ async def on_message(message):
                     elif args[i].startswith(('d ', 'data ')):
                         temp = args[i].split()
                         data = temp[1]
+                    else:
+                        await bot.send_message(message.channel, 'Unkown command(s).')
+                        return
                 if server.me.status != discord.Status.online:
                     err_msg = 'Only one simulation can run at the same time.'
                     await bot.send_message(message.channel, err_msg)
@@ -117,4 +123,4 @@ async def on_ready():
     await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
 
 
-bot.run(user_opt['server_opt']['token'])
+bot.run(user_opt['server_opt'][0]['token'])
