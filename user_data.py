@@ -1,2 +1,0 @@
-serverid = ID
-TOKEN = 'TOKEN'
