@@ -57,10 +57,7 @@ async def on_message(message):
         return
     elif message.content.startswith('!simc'):
         args = message.content.split('-')
-        if message.channel != user_opt['server_opt'][0]['channelid']:
-            await bot.send_message(message.channel, 'Please use the correct channel.')
-            return
-        elif args:
+        if args:
             if args[1].startswith(('h', 'help')):
                 msg = open('help.file', 'r').read()
                 await bot.send_message(message.author, msg)
@@ -82,7 +79,7 @@ async def on_message(message):
                         temp = args[i].split()
                         data = temp[1]
                     else:
-                        await bot.send_message(message.channel, 'Unknown command(s).')
+                        await bot.send_message(message.channel, 'Unkown command(s).')
                         return
                 if server.me.status != discord.Status.online:
                     err_msg = 'Only one simulation can run at the same time.'
