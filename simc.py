@@ -52,14 +52,14 @@ async def on_message(message):
     char = 'Dummy'
     addon = 'Dummy'
 
-    if message.channel != user_opt['server_opt'][0]['channelid']:
-        await bot.send_message(message.channel, 'Please use the correct channel.')
-        return
     if message.author == bot.user:
         return
-    if message.content.startswith('!simc'):
+    elif message.content.startswith('!simc'):
         args = message.content.split('-')
-        if args:
+        if message.channel != user_opt['server_opt'][0]['channelid']:
+            await bot.send_message(message.channel, 'Please use the correct channel.')
+            return
+        elif args:
             if args[1].startswith(('h', 'help')):
                 msg = open('help.file', 'r').read()
                 await bot.send_message(message.author, msg)
