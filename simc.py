@@ -2,7 +2,10 @@ import os
 import discord
 import asyncio
 import time
-import user_data
+import json
+
+with open('user_data.json') as data_file:
+    user_opt = json.load(data_file)
 
 bot = discord.Client()
 
@@ -39,7 +42,7 @@ async def check(addon_data):
 
 @bot.event
 async def on_message(message):
-    server = bot.get_server(user_data.serverid)
+    server = bot.get_server(user_opt['server_opt']['serverid'])
     loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
     realm = 'magtheridon'
@@ -114,4 +117,4 @@ async def on_ready():
     await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
 
 
-bot.run(user_data.TOKEN)
+bot.run(user_opt['server_opt']['token'])
