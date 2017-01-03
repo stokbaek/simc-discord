@@ -1,0 +1,39 @@
+***Help for simulation through Discord:***\n
+***Options:***\n
+-c	-character 	**InGame name**\n
+-r	-realm		**Realm** *(Default is Magtheridon)*\n
+-s	-scale		**yes/no** *(Default is no)*\n
+-d	-data		**armory/addon** *(Default is armory)*\n\n
+● Simulate using armory with stat scaling:\n\n
+`!simc -character NAME -scale yes`\n\n
+● Simulate using addon without stat scaling:\n\n
+`!simc -character NAME -d addon`\n\n
+*The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain DONE.*\n
+__example__\n
+```warlock="Stokbaek"\n
+level=110\n
+race=goblin\n
+region=eu\n
+server=magtheridon\n
+role=attack\n
+professions=alchemy=784/herbalism=800\n
+talents=1131323\n
+spec=destruction\n
+artifact=38:0:0:0:0:803:1:807:3:808:2:809:3:810:3:811:3
+:812:3:814:1:815:1:817:1:818:1:1355:1\n\n
+head=,id=139909,bonus_id=665\n
+neck=,id=139332,enchant_id=5439,bonus_id=1807/1808/1472\n
+shoulder=,id=134221,bonus_id=3416/1532/3336\n
+back=,id=139248,bonus_id=1805/1808/1492/3336\n
+chest=,id=142410,bonus_id=3468/1808/1492\n
+wrist=,id=142415,bonus_id=3467/1497/3337\n
+hands=,id=140993,bonus_id=1805/1487\n
+waist=,id=142153,bonus_id=3452/1487/3337\n
+legs=,id=139190,bonus_id=1805/1487\n
+feet=,id=134308,bonus_id=3415/1522/3336\n
+finger1=,id=132452,enchant_id=5428,bonus_id=3459/3458\n
+finger2=,id=142520,enchant_id=5428,bonus_id=3467/1492/3337\n
+trinket1=,id=137301,bonus_id=3509/1532/3336\n
+trinket2=,id=142157,bonus_id=41/3453/1472\n
+main_hand=,id=128941,bonus_id=749,relic_id=3506:1482/3467:1477/3453:1472,gem_id=0/0/0/0\n
+DONE```
