@@ -43,6 +43,7 @@ async def check(addon_data):
 @bot.event
 async def on_message(message):
     server = bot.get_server(user_opt['server_opt'][0]['serverid'])
+    channel = bot.get_channel(user_opt['server_opt'][0]['channelid'])
     loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
     realm = 'magtheridon'
@@ -64,6 +65,9 @@ async def on_message(message):
                 msg = open('help.file', 'r').read()
                 await bot.send_message(message.author, msg)
             else:
+                if message.channel != channel:
+                    await bot.send_message(message.channel, 'Please use the correct channel.')
+                    return
                 for i in range(len(args)):
                     if args[i].startswith(('r ', 'realm ')):
                         temp = args[i].split()
@@ -78,7 +82,7 @@ async def on_message(message):
                         temp = args[i].split()
                         data = temp[1]
                     else:
-                        await bot.send_message(message.channel, 'Unkown command(s).')
+                        await bot.send_message(message.channel, 'Unknown command(s).')
                         return
                 if server.me.status != discord.Status.online:
                     err_msg = 'Only one simulation can run at the same time.'
