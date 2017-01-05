@@ -4,6 +4,7 @@
 -r      -realm                  **realm name** *(Default is Magtheridon)*
 -s      -scale                  **yes/no** *(Default is no)*
 -d      -data                   **armory/addon** *(Default is armory)*
+-v      -version              **gives the version of simulationcraft being used**
 
 ● Simulate using armory with stat scaling:
 `!simc -character NAME -scale yes`
@@ -11,7 +12,8 @@
 ● Simulate using addon without stat scaling:
 `!simc -character NAME -d addon`
 
-The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain DONE.
+The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain** DONE**.
+Addon can be found here: <https://mods.curse.com/addons/wow/simulationcraft>
 
 __example__:
 ```warlock="Stokbaek"

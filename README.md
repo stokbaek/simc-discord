@@ -3,12 +3,13 @@ SimulationCraft Bot for discord.
 
 ***Help for simulation through Discord:***
 
-***Options:***
+*Options:*
 ```
 -c	-character	InGame name
 -r	-realm		Realm (Default is Magtheridon)
 -s	-scale		yes/no (Default is no)
 -d	-data		armory/addon (Default is armory)
+-v	-version	gives the version of simulationcraft being used
 ```
 * Simulate using armory with stat scaling:
 
@@ -18,6 +19,8 @@ SimulationCraft Bot for discord.
 `!simc -character NAME -d addon`
 
 *The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain DONE.*
+
+Addon can be found here: <https://mods.curse.com/addons/wow/simulationcraft>
 
 example
 ```

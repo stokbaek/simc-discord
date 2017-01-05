@@ -3,7 +3,10 @@
     {
       "serverid": "",
       "channelid": "",
-      "token": ""
+      "token": "",
+      "website": "",
+      "htmldir": ""
+
     }
   ]
 }
