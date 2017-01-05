@@ -45,7 +45,7 @@ async def sim(realm, char, scale, htmladdr, data, addon, loop, message):
                 if icon_num == 4:
                     icon_num = 0
 
-def check(addon_data):
+async def check(addon_data):
     return addon_data.content.endswith('DONE')
 
 
@@ -101,7 +101,7 @@ async def on_message(message):
                                                                                                          'Waiting...'))
                             msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
                             await bot.send_message(user, msg)
-                            addon_data = bot.wait_for_message(author=message.author, check=check, timeout=60)
+                            addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
                             if addon_data is None:
                                 await bot.send_message(message.channel, 'No data given. Resetting session.')
                                 await bot.change_presence(status=discord.Status.online,
