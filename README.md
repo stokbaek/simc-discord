@@ -19,6 +19,7 @@ SimulationCraft Bot for discord.
 `!simc -character NAME -d addon`
 
 *The bot will whisper asking for a paste of data string from the addon ingame. The last line should contain DONE.*
+
 Addon can be found here: <https://mods.curse.com/addons/wow/simulationcraft>
 
 example
