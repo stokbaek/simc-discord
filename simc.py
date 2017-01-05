@@ -21,20 +21,29 @@ async def sim(realm, char, scale, htmladdr, data, addon, loop, message):
             realm, char, scale, htmladdr)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
-    os.system('/usr/local/sbin/simc %s &' % options)
+    os.system('/usr/local/sbin/simc %s > /var/www/html/simc/debug/simc.stout 2> /var/www/html/simc/debug/simc.sterr &' %
+              options)
     while loop:
-        if os.path.exists('/var/www/html/simc/%s' % htmladdr):
-            loop = False
-            link = 'Simulation: https://stokbaek.org/simc/%s' % htmladdr
+        readstout = open('/var/www/html/simc/debug/simc.stout', "r")
+        readsterr = open('/var/www/html/simc/debug/simc.sterr', "r")
+        process_check = readstout.readlines()
+        err_check = readsterr.readlines()
+        if len(err_check) > 1:
             await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
-            await bot.edit_message(load, link)
-        else:
-            load = await bot.edit_message(load, 'Simulating: ' + load_icon[icon_num])
-            await asyncio.sleep(1)
-            icon_num += 1
-            if icon_num == 4:
-                icon_num = 0
-
+            await bot.edit_message(load, 'Error, something went wrong')
+            return
+        if len(process_check) > 1:
+            if 'html report took' in process_check[-2]:
+                loop = False
+                link = 'Simulation: https://stokbaek.org/simc/%s' % htmladdr
+                await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
+                await bot.edit_message(load, link)
+            else:
+                load = await bot.edit_message(load, 'Simulating: ' + load_icon[icon_num])
+                await asyncio.sleep(1)
+                icon_num += 1
+                if icon_num == 4:
+                    icon_num = 0
 
 async def check(addon_data):
     return addon_data.content.endswith('DONE')
