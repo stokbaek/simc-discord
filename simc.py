@@ -8,6 +8,7 @@ with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
 bot = discord.Client()
+os.chdir(user_opt['server_opt'][0]['workdir'])
 threads = os.cpu_count()
 htmldir = user_opt['server_opt'][0]['htmldir']
 website = user_opt['server_opt'][0]['website']
