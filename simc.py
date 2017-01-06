@@ -10,21 +10,21 @@ with open('user_data.json') as data_file:
 
 bot = discord.Client()
 threads = os.cpu_count()
-htmldir = user_opt['server_opt'][0]['htmldir']
-website = user_opt['server_opt'][0]['website']
+htmldir = user_opt['simcraft_opt'][0]['htmldir']
+website = user_opt['simcraft_opt'][0]['website']
 os.system('/usr/local/sbin/simc > ' + htmldir + 'debug/simc.ver 2>/dev/null')
 readversion = open(htmldir + 'debug/simc.ver', 'r')
 version = readversion.readlines()
 
-async def sim(realm, char, scale, htmladdr, data, addon, region, loop, message):
+async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop, message):
     icon_num = 0
     load_icon = ['◐', '◓', '◑', '◒']
     if data == 'addon':
-        options = 'calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=24999 input=%s' % (
-            scale, htmldir, char, htmladdr, threads, addon)
+        options = 'calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s input=%s' % (
+            scale, htmldir, char, htmladdr, threads, iterations, addon)
     else:
-        options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=24999' % (
-            region, realm, char, scale, htmldir, char, threads, htmladdr)
+        options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s' % (
+            region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
     os.system('/usr/local/sbin/simc ' + options + ' > ' + htmldir + 'debug/simc.stout 2> ' + htmldir + 'debug/simc'
@@ -60,8 +60,9 @@ async def check(addon_data):
 async def on_message(message):
     server = bot.get_server(user_opt['server_opt'][0]['serverid'])
     channel = bot.get_channel(user_opt['server_opt'][0]['channelid'])
-    realm = user_opt['server_opt'][0]['default_realm']
-    region = user_opt['server_opt'][0]['region']
+    realm = user_opt['simcraft_opt'][0]['default_realm']
+    region = user_opt['simcraft_opt'][0]['region']
+    iterations = user_opt['simcraft_opt'][0]['default_iterations']
     loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
     scale = 0
@@ -99,6 +100,13 @@ async def on_message(message):
                         elif args[i].startswith(('d ', 'data ')):
                             temp = args[i].split()
                             data = temp[1]
+                        elif args[i].startswith(('i ', 'iterations ')):
+                            if user_opt['simcraft_opt'][0]['allow_iteration_parameter']:
+                                temp = args[i].split()
+                                iterations = temp[1]
+                            else:
+                                await bot.send_message(message.channel, 'Custom iterations is disabled')
+                                return
                         else:
                             await bot.send_message(message.channel, 'Unknown command.')
                             return
@@ -129,11 +137,12 @@ async def on_message(message):
                             f.write(addon_data.content[:-4])
                             f.close()
                     await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
-                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nScaling: %s\nData: %s' % (
-                        realm.capitalize(), char.capitalize(), scaling.capitalize(), data.capitalize())
+                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\n Iterations: %s\nScaling: %s\nData: %s' % (
+                        realm.capitalize(), char.capitalize(), iterations, scaling.capitalize(), data.capitalize())
                     htmladdr = '%s-%s.html' % (char, timestr)
                     await bot.send_message(message.channel, msg)
-                    bot.loop.create_task(sim(realm, char, scale, htmladdr, data, addon, region, loop, message))
+                    bot.loop.create_task(sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop,
+                                             message))
 
 
 @bot.event
