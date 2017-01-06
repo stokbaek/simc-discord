@@ -1,6 +1,19 @@
 # simc-discord
 SimulationCraft Bot for discord.
 
+The following things are needed to run the bot:
+* Python 3.5+
+* Python Discord lib: https://github.com/Rapptz/discord.py
+* Webservice on the server to hand out a link to the finished simulation.
+* A working version of simulationcraft TCI
+* Blizzard API key (This is needed to use armory): https://dev.battle.net
+
+Tested systems:
+- [x] Debian 8
+- [ ] Ubuntu 16.04
+- [ ] FreeBSD 11.0
+- [ ] Windows Server 2016
+
 ***Help for simulation through Discord:***
 
 *Options:*
