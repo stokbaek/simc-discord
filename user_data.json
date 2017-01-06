@@ -3,12 +3,17 @@
     {
       "serverid": "",
       "channelid": "",
-      "token": "",
+      "token": ""
+    }
+  ]
+  "simcraft_opt": [
+    {
       "website": "",
       "htmldir": "",
       "default_realm": "",
-      "region": ""
-
+      "region": "",
+      "allow_iteration_parameter": false,
+      "default_iterations": "25000"
     }
   ]
 }
