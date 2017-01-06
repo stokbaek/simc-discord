@@ -14,6 +14,8 @@ Tested systems:
 - [ ] FreeBSD 11.0
 - [ ] Windows Server 2016
 
+The output from simulationcraft can be found: `<WEBSITE>/debug/simc.sterr or simc.stout`. These files are live updated during a simulation.
+
 ***Help for simulation through Discord:***
 
 *Options:*
