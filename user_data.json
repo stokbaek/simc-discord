@@ -5,7 +5,9 @@
       "channelid": "",
       "token": "",
       "website": "",
-      "htmldir": ""
+      "htmldir": "",
+      "default_realm": "",
+      "region": ""
 
     }
   ]

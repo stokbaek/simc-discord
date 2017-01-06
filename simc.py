@@ -8,21 +8,22 @@ with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
 bot = discord.Client()
+threads = os.cpu_count()
 htmldir = user_opt['server_opt'][0]['htmldir']
 website = user_opt['server_opt'][0]['website']
 os.system('/usr/local/sbin/simc > ' + htmldir + 'debug/simc.ver 2>/dev/null')
 readversion = open(htmldir + 'debug/simc.ver', 'r')
 version = readversion.readlines()
 
-async def sim(realm, char, scale, htmladdr, data, addon, loop, message):
+async def sim(realm, char, scale, htmladdr, data, addon, region, loop, message):
     icon_num = 0
     load_icon = ['◐', '◓', '◑', '◒']
     if data == 'addon':
-        options = 'calculate_scale_factors=%s html=%ssims/%s/%s threads=8 iterations=24999 input=%s' % (
-            scale, htmldir, char, htmladdr, addon)
+        options = 'calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=24999 input=%s' % (
+            scale, htmldir, char, htmladdr, threads, addon)
     else:
-        options = 'armory=eu,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=8 iterations=24999' % (
-            realm, char, scale, htmldir, char, htmladdr)
+        options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=24999' % (
+            region, realm, char, scale, htmldir, char, threads, htmladdr)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
     os.system('/usr/local/sbin/simc ' + options + ' > ' + htmldir + 'debug/simc.stout 2> ' + htmldir + 'debug/simc'
@@ -58,19 +59,21 @@ async def check(addon_data):
 async def on_message(message):
     server = bot.get_server(user_opt['server_opt'][0]['serverid'])
     channel = bot.get_channel(user_opt['server_opt'][0]['channelid'])
+    realm = user_opt['server_opt'][0]['default_realm']
+    region = user_opt['server_opt'][0]['region']
     loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
-    realm = 'magtheridon'
     scale = 0
     scaling = 'No'
     data = 'armory'
-    char = 'Dummy'
-    addon = 'Dummy'
+    char = ''
+    addon = ''
+    args = message.content.lower()
 
     if message.author == bot.user:
         return
-    elif message.content.startswith('!simc'):
-        args = message.content.split('-')
+    elif args.startswith('!simc'):
+        args = args.split('-')
         if args:
             if args[1].startswith(('h', 'help')):
                 msg = open('help.file', 'r').read()
@@ -103,34 +106,33 @@ async def on_message(message):
                     await bot.send_message(message.channel, err_msg)
                     return
                 else:
-                    if char != 'Dummy':
-                        if scaling == 'yes':
-                            scale = 1
-                        user = message.author
-                        os.makedirs(os.path.dirname(htmldir + 'sims/' + char + '/test.file'), exist_ok=True)
-                        if data == 'addon':
-                            await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: '
-                                                                                                         'Waiting...'))
-                            msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
-                            await bot.send_message(user, msg)
-                            addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
-                            if addon_data is None:
-                                await bot.send_message(message.channel, 'No data given. Resetting session.')
-                                await bot.change_presence(status=discord.Status.online,
-                                                          game=discord.Game(name='Sim: Ready'))
-                                return
-                            else:
-                                addon = '%ssims/%s/%s-%s.simc' % (htmldir, char, char, timestr)
-                                f = open(addon, 'w')
-                                f.write(addon_data.content[:-4])
-                                f.close()
-                        await bot.change_presence(status=discord.Status.dnd,
-                                                  game=discord.Game(name='Sim: In Progress'))
-                        msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nScaling: %s\nData: %s' % (
-                            realm.capitalize(), char.capitalize(), scaling.capitalize(), data.capitalize())
-                        htmladdr = '%s-%s.html' % (char, timestr)
-                        await bot.send_message(message.channel, msg)
-                        bot.loop.create_task(sim(realm, char, scale, htmladdr, data, addon, loop, message))
+                    if char == '':
+                        await bot.send_message(message.channel, 'Character name is needed')
+                        return
+                    if scaling == 'yes':
+                        scale = 1
+                    user = message.author
+                    os.makedirs(os.path.dirname(htmldir + 'sims/' + char + '/test.file'), exist_ok=True)
+                    if data == 'addon':
+                        await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
+                        msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
+                        await bot.send_message(user, msg)
+                        addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
+                        if addon_data is None:
+                            await bot.send_message(message.channel, 'No data given. Resetting session.')
+                            await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
+                            return
+                        else:
+                            addon = '%ssims/%s/%s-%s.simc' % (htmldir, char, char, timestr)
+                            f = open(addon, 'w')
+                            f.write(addon_data.content[:-4])
+                            f.close()
+                    await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
+                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nScaling: %s\nData: %s' % (
+                        realm.capitalize(), char.capitalize(), scaling.capitalize(), data.capitalize())
+                    htmladdr = '%s-%s.html' % (char, timestr)
+                    await bot.send_message(message.channel, msg)
+                    bot.loop.create_task(sim(realm, char, scale, htmladdr, data, addon, region, loop, message))
 
 
 @bot.event
