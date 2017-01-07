@@ -30,6 +30,7 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir + 'debug',
                            'simc.stout 2> ' + htmldir + 'debug', 'simc.sterr &'))
+    await asyncio.sleep(1)
     while loop:
         readstout = open(htmldir + os.path.join('debug', 'simc.stout'), "r")
         readsterr = open(htmldir + os.path.join('debug', 'simc.sterr'), "r")
