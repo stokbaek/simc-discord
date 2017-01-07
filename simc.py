@@ -4,7 +4,7 @@ import asyncio
 import time
 import json
 
-os.chdir(os.path.join('opt', 'simc-discord'))
+os.chdir(os.path.join('/opt', 'simc-discord'))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
@@ -12,7 +12,7 @@ bot = discord.Client()
 threads = os.cpu_count()
 htmldir = user_opt['simcraft_opt'][0]['htmldir']
 website = user_opt['simcraft_opt'][0]['website']
-os.system(os.path.join('usr', 'local', 'sbin', 'simc > ' + htmldir + 'debug', 'simc.ver 2>' + os.devnull))
+os.system(os.path.join('/usr', 'local', 'sbin', 'simc > ' + htmldir + 'debug', 'simc.ver 2>' + os.devnull))
 readversion = open(os.path.join(htmldir + 'debug', 'simc.ver'), 'r')
 version = readversion.readlines()
 
@@ -27,7 +27,7 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
-    os.system(os.path.join('usr', 'local', 'sbin', 'simc ' + options + ' > ' + htmldir + 'debug',
+    os.system(os.path.join('/usr', 'local', 'sbin', 'simc ' + options + ' > ' + htmldir + 'debug',
                            'simc.stout 2> ' + htmldir + 'debug', 'simc.sterr &'))
     while loop:
         readstout = open(htmldir + os.path.join('debug', 'simc.stout'), "r")
