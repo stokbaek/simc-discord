@@ -6,11 +6,12 @@ The following things are needed to run the bot:
 * Python Discord lib: https://github.com/Rapptz/discord.py
 * Webservice on the server to hand out a link to the finished simulation.
 * A working version of simulationcraft TCI
-* Blizzard API key (This is needed to use armory): https://dev.battle.net
+* Blizzard API key (This is needed to use armory): https://github.com/simulationcraft/simc/wiki/BattleArmoryAPI
 
 Tested systems:
 - [x] Debian 8
-- [ ] Ubuntu 16.04
+- [x] Ubuntu 16.04
+- [ ] RHEL 7
 - [ ] FreeBSD 11.0
 - [ ] Windows Server 2016
 
