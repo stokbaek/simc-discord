@@ -4,7 +4,7 @@ import asyncio
 import time
 import json
 
-os.chdir('/opt/simc-discord/')
+os.chdir(os.path.join('opt', 'simc-discord'))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
@@ -12,8 +12,8 @@ bot = discord.Client()
 threads = os.cpu_count()
 htmldir = user_opt['simcraft_opt'][0]['htmldir']
 website = user_opt['simcraft_opt'][0]['website']
-os.system('/usr/local/sbin/simc > ' + htmldir + 'debug/simc.ver 2>/dev/null')
-readversion = open(htmldir + 'debug/simc.ver', 'r')
+os.system(os.path.join('usr', 'local', 'sbin', 'simc > ' + htmldir + 'debug', 'simc.ver 2>' + os.devnull))
+readversion = open(os.path.join(htmldir + 'debug', 'simc.ver'), 'r')
 version = readversion.readlines()
 
 async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop, message):
@@ -27,11 +27,11 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
-    os.system('/usr/local/sbin/simc ' + options + ' > ' + htmldir + 'debug/simc.stout 2> ' + htmldir + 'debug/simc'
-                                                                                                       '.sterr &')
+    os.system(os.path.join('usr', 'local', 'sbin', 'simc ' + options + ' > ' + htmldir + 'debug',
+                           'simc.stout 2> ' + htmldir + 'debug', 'simc.sterr &'))
     while loop:
-        readstout = open(htmldir + 'debug/simc.stout', "r")
-        readsterr = open(htmldir + 'debug/simc.sterr', "r")
+        readstout = open(htmldir + os.path.join('debug', 'simc.stout'), "r")
+        readsterr = open(htmldir + os.path.join('debug', 'simc.sterr'), "r")
         process_check = readstout.readlines()
         err_check = readsterr.readlines()
         if len(err_check) > 1:
@@ -121,7 +121,7 @@ async def on_message(message):
                     if scaling == 'yes':
                         scale = 1
                     user = message.author
-                    os.makedirs(os.path.dirname(htmldir + 'sims/' + char + '/test.file'), exist_ok=True)
+                    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
                     if data == 'addon':
                         await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
                         msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
@@ -129,7 +129,8 @@ async def on_message(message):
                         addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
                         if addon_data is None:
                             await bot.send_message(message.channel, 'No data given. Resetting session.')
-                            await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
+                            await bot.change_presence(status=discord.Status.online,
+                                                      game=discord.Game(name='Sim: Ready'))
                             return
                         else:
                             addon = '%ssims/%s/%s-%s.simc' % (htmldir, char, char, timestr)
