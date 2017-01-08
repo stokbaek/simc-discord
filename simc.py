@@ -12,6 +12,7 @@ bot = discord.Client()
 threads = os.cpu_count()
 htmldir = user_opt['simcraft_opt'][0]['htmldir']
 website = user_opt['simcraft_opt'][0]['website']
+os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
 os.system(
     os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir, 'debug', 'simc.ver 2> ' + os.devnull))
 readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
@@ -27,7 +28,7 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
         options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s' % (
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
-    load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
+    load = await bot.send_message(message.channel, 'Simulating: Starting...')
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
                            'simc.stout 2> ' + htmldir, 'debug', 'simc.sterr &'))
     await asyncio.sleep(1)
@@ -36,10 +37,11 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
         readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
         process_check = readstout.readlines()
         err_check = readsterr.readlines()
-        if len(err_check) > 1:
+        await asyncio.sleep(1)
+        if len(err_check) > 0:
             if 'ERROR' in err_check[-1]:
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
-                await bot.edit_message(load, 'Error, something went wrong')
+                await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
                 return
         if len(process_check) > 1:
             if 'html report took' in process_check[-2]:
@@ -49,12 +51,12 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
                 await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
             else:
                 load = await bot.edit_message(load, 'Simulating: ' + load_icon[icon_num])
-                await asyncio.sleep(1)
                 icon_num += 1
                 if icon_num == 4:
                     icon_num = 0
 
-async def check(addon_data):
+
+def check(addon_data):
     return addon_data.content.endswith('DONE')
 
 
