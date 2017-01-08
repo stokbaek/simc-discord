@@ -13,8 +13,8 @@ threads = os.cpu_count()
 htmldir = user_opt['simcraft_opt'][0]['htmldir']
 website = user_opt['simcraft_opt'][0]['website']
 os.system(
-    os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir + 'debug', 'simc.ver 2>' + os.devnull))
-readversion = open(os.path.join(htmldir + 'debug', 'simc.ver'), 'r')
+    os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir, 'debug', 'simc.ver 2> ' + os.devnull))
+readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
 version = readversion.readlines()
 
 async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop, message):
@@ -28,12 +28,12 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
     load = await bot.send_message(message.channel, 'Simulating: ' + load_icon[icon_num])
-    os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir + 'debug',
-                           'simc.stout 2> ' + htmldir + 'debug', 'simc.sterr &'))
+    os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
+                           'simc.stout 2> ' + htmldir, 'debug', 'simc.sterr &'))
     await asyncio.sleep(1)
     while loop:
-        readstout = open(htmldir + os.path.join('debug', 'simc.stout'), "r")
-        readsterr = open(htmldir + os.path.join('debug', 'simc.sterr'), "r")
+        readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
+        readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
         process_check = readstout.readlines()
         err_check = readsterr.readlines()
         if len(err_check) > 1:
@@ -80,7 +80,7 @@ async def on_message(message):
         args = args.split('-')
         if args:
             if args[1].startswith(('h', 'help')):
-                msg = open('help.file', 'r').read()
+                msg = open('help.file', 'r', encoding='utf8').read()
                 await bot.send_message(message.author, msg)
             elif args[1].startswith(('v', 'version')):
                 await bot.send_message(message.channel, *version[:1])
