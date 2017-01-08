@@ -11,11 +11,20 @@ The following things are needed to run the bot:
 Tested systems:
 - [x] Debian 8
 - [x] Ubuntu 16.04
-- [ ] RHEL 7
-- [ ] FreeBSD 11.0
-- [ ] Windows Server 2016
+- [x] RHEL 7
+- [x] Windows Server 2016
+- [ ] ~~FreeBSD 11.0~~ *SimulationCraft does not build well on FreeBSD*
 
 The output from simulationcraft can be found: `<WEBSITE>/debug/simc.sterr or simc.stout`. These files are live updated during a simulation.
+
+Setting the `executable` in the `user_data.json` for Windows can be abit tricky.
+
+Here is an example on how it can be done:
+
+`"executable": "START /B C:\\Simulationcraft^(x64^)\\710-03\\simc.exe",`
+* `START` makes it run in the background, this is needed to get the update icon rotating in discord
+* `/B` allows output to be written to file
+* `^` is windows way to escape a character. If `( )` is not escaped will it fail because it cannot find path
 
 ***Help for simulation through Discord:***
 
