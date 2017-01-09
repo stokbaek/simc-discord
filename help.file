@@ -1,7 +1,7 @@
 ***Help for simulation through Discord:***
 ***Options:***
--c      -character      **in-game name**
--r      -realm                  **realm name** *(Default is Magtheridon)*
+-c      -character         **in-game name**
+-r      -realm                 **realm name** *(Default is Magtheridon)*
 -s      -scale                  **yes/no** *(Default is no)*
 -d      -data                   **armory/addon** *(Default is armory)*
 -v      -version              **gives the version of simulationcraft being used**
