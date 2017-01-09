@@ -142,7 +142,7 @@ async def on_message(message):
                             f.write(addon_data.content[:-4])
                             f.close()
                     await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
-                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\n Iterations: %s\nScaling: %s\nData: %s' % (
+                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nIterations: %s\nScaling: %s\nData: %s' % (
                         realm.capitalize(), char.capitalize(), iterations, scaling.capitalize(), data.capitalize())
                     htmladdr = '%s-%s.html' % (char, timestr)
                     await bot.send_message(message.channel, msg)
