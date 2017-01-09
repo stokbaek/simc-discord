@@ -8,6 +8,27 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
+
+def check_version():
+    git = os.popen('git rev-parse --is-inside-work-tree').read()
+    if git:
+        check_https = os.popen('git remote -v').read().splitlines()
+        for i in range(len(check_https)):
+            if 'https' in check_https[i] and '(fetch)' in check_https[i]:
+                os.system('git fetch')
+                git_commits = os.popen('git log --oneline origin/master').read().splitlines()
+                git_current = os.popen('git rev-parse HEAD').read()
+                if git_current[:7] in git_commits[0]:
+                    return 'Bot is up to date'
+                else:
+                    for checks in range(len(git_commits)):
+                        if git_current[:7] in git_commits[i]:
+                            return 'Bot is %s commits behind master.' % checks
+            else:
+                return 'Can\'t fetch git remote'
+    else:
+        return 'Bot version is unknown'
+
 bot = discord.Client()
 threads = os.cpu_count()
 htmldir = user_opt['simcraft_opt'][0]['htmldir']
@@ -85,6 +106,7 @@ async def on_message(message):
                 msg = open('help.file', 'r', encoding='utf8').read()
                 await bot.send_message(message.author, msg)
             elif args[1].startswith(('v', 'version')):
+                await bot.send_message(message.channel, check_version())
                 await bot.send_message(message.channel, *version[:1])
             else:
                 if message.channel != channel:
@@ -112,7 +134,7 @@ async def on_message(message):
                                 await bot.send_message(message.channel, 'Custom iterations is disabled')
                                 return
                         else:
-                            await bot.send_message(message.channel, 'Unknown command.')
+                            await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
                             return
                 if server.me.status != discord.Status.online:
                     err_msg = 'Only one simulation can run at the same time.'
@@ -155,6 +177,7 @@ async def on_ready():
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
+    print(check_version())
     print(*version[:1], '--------------')
     await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
 
