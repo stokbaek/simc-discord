@@ -15,7 +15,7 @@ def check_version():
         check_https = os.popen('git remote -v').read().splitlines()
         for i in range(len(check_https)):
             if 'https' in check_https[i] and '(fetch)' in check_https[i]:
-                os.system('git fetch')
+                os.system('git fetch > ' + os.devnull)
                 git_commits = os.popen('git log --oneline origin/master').read().splitlines()
                 git_current = os.popen('git rev-parse HEAD').read()
                 if git_current[:7] in git_commits[0]:
@@ -24,8 +24,10 @@ def check_version():
                     for checks in range(len(git_commits)):
                         if git_current[:7] in git_commits[checks]:
                             return 'Bot is %s commits behind master.' % checks
+            elif 'git@github.com' in check_https[i] and '(fetch)' in check_https[i]:
+                return 'Bot version unknown'
     else:
-        return 'Bot version is unknown'
+        return 'Bot version unknown'
 
 bot = discord.Client()
 threads = os.cpu_count()
