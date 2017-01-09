@@ -24,8 +24,10 @@ def check_version():
                     for checks in range(len(git_commits)):
                         if git_current[:7] in git_commits[checks]:
                             return 'Bot is %s commits behind master.' % checks
+            elif 'git@github.com' in check_https[i] and '(fetch)' in check_https[i]:
+                return 'Bot version unknown'
     else:
-        return 'Bot version is unknown'
+        return 'Bot version unknown'
 
 bot = discord.Client()
 threads = os.cpu_count()
