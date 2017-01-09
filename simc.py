@@ -22,10 +22,8 @@ def check_version():
                     return 'Bot is up to date'
                 else:
                     for checks in range(len(git_commits)):
-                        if git_current[:7] in git_commits[i]:
+                        if git_current[:7] in git_commits[checks]:
                             return 'Bot is %s commits behind master.' % checks
-            else:
-                return 'Can\'t fetch git remote'
     else:
         return 'Bot version is unknown'
 
