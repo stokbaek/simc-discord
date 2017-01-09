@@ -12,7 +12,7 @@ with open('user_data.json') as data_file:
 def check_version():
     git = os.popen('git rev-parse --is-inside-work-tree').read()
     if git:
-        check_https = os.popen('git remote -v > ' + os.devnull).read().splitlines()
+        check_https = os.popen('git remote -v').read().splitlines()
         for i in range(len(check_https)):
             if 'https' in check_https[i] and '(fetch)' in check_https[i]:
                 os.system('git fetch > ' + os.devnull)
