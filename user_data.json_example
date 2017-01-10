@@ -1,0 +1,20 @@
+{
+  "server_opt": [
+    {
+      "serverid": "",
+      "channelid": "",
+      "token": ""
+    }
+  ],
+  "simcraft_opt": [
+    {
+      "executable": "",
+      "website": "",
+      "htmldir": "",
+      "default_realm": "",
+      "region": "",
+      "allow_iteration_parameter": false,
+      "default_iterations": "25000"
+    }
+  ]
+}
