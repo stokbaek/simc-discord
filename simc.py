@@ -51,7 +51,6 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
         options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s' % (
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
-    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
                            'simc.stout 2> ' + htmldir, 'debug', 'simc.sterr &'))
@@ -152,6 +151,8 @@ async def on_message(message):
                         return
                     if scaling == 'yes':
                         scale = 1
+
+                    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
                     if data == 'addon':
                         await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
                         msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
