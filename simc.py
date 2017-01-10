@@ -40,8 +40,6 @@ readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
 version = readversion.readlines()
 
 async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop, message):
-    icon_num = 0
-    load_icon = ['◐', '◓', '◑', '◒']
     if data == 'addon':
         options = 'calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s input=%s' % (
             scale, htmldir, char, htmladdr, threads, iterations, addon)
@@ -71,10 +69,13 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                 await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
             else:
-                load = await bot.edit_message(load, 'Simulating: ' + load_icon[icon_num])
-                icon_num += 1
-                if icon_num == 4:
-                    icon_num = 0
+                if 'Generating' in process_check[-1]:
+                        done = '█'*(20-process_check[-1].count('.'))
+                        missing = '░'*(process_check[-1].count('.'))
+                        progressbar = done + missing
+                        procent = 100-process_check[-1].count('.')*5
+                        load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
+                                                      str(procent) + '%')
 
 
 def check(addon_data):
