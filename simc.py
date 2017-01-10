@@ -8,6 +8,12 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
+bot = discord.Client()
+threads = os.cpu_count()
+htmldir = user_opt['simcraft_opt'][0]['htmldir']
+website = user_opt['simcraft_opt'][0]['website']
+os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
+
 
 def check_version():
     git = os.popen('git rev-parse --is-inside-work-tree').read()
@@ -29,15 +35,13 @@ def check_version():
     else:
         return 'Bot version unknown'
 
-bot = discord.Client()
-threads = os.cpu_count()
-htmldir = user_opt['simcraft_opt'][0]['htmldir']
-website = user_opt['simcraft_opt'][0]['website']
-os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
-os.system(
-    os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir, 'debug', 'simc.ver 2> ' + os.devnull))
-readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
-version = readversion.readlines()
+
+def check_simc():
+    os.system(
+        os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir, 'debug', 'simc.ver 2> ' + os.devnull))
+    readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
+    return readversion.read().splitlines()
+
 
 async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loop, message):
     if data == 'addon':
@@ -47,6 +51,7 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
         options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s threads=%s iterations=%s' % (
             region, realm, char, scale, htmldir, char, htmladdr, threads, iterations)
 
+    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
                            'simc.stout 2> ' + htmldir, 'debug', 'simc.sterr &'))
@@ -70,12 +75,12 @@ async def sim(realm, char, scale, htmladdr, data, addon, region, iterations, loo
                 await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
             else:
                 if 'Generating' in process_check[-1]:
-                        done = '█'*(20-process_check[-1].count('.'))
-                        missing = '░'*(process_check[-1].count('.'))
-                        progressbar = done + missing
-                        procent = 100-process_check[-1].count('.')*5
-                        load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
-                                                      str(procent) + '%')
+                    done = '█' * (20 - process_check[-1].count('.'))
+                    missing = '░' * (process_check[-1].count('.'))
+                    progressbar = done + missing
+                    procent = 100 - process_check[-1].count('.') * 5
+                    load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
+                                                  str(procent) + '%')
 
 
 def check(addon_data):
@@ -108,7 +113,7 @@ async def on_message(message):
                 await bot.send_message(message.author, msg)
             elif args[1].startswith(('v', 'version')):
                 await bot.send_message(message.channel, check_version())
-                await bot.send_message(message.channel, *version[:1])
+                await bot.send_message(message.channel, *check_simc())
             else:
                 if message.channel != channel:
                     await bot.send_message(message.channel, 'Please use the correct channel.')
@@ -147,12 +152,10 @@ async def on_message(message):
                         return
                     if scaling == 'yes':
                         scale = 1
-                    user = message.author
-                    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
                     if data == 'addon':
                         await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
                         msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
-                        await bot.send_message(user, msg)
+                        await bot.send_message(message.author, msg)
                         addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
                         if addon_data is None:
                             await bot.send_message(message.channel, 'No data given. Resetting session.')
@@ -179,8 +182,8 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print(check_version())
-    print(*version[:1], '--------------')
+    print(*check_simc())
+    print('--------------')
     await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
-
 
 bot.run(user_opt['server_opt'][0]['token'])
