@@ -1,18 +1,18 @@
 {
   "server_opt": [
     {
-      "serverid": "",
-      "channelid": "",
-      "token": ""
+      "serverid": "654146666167092783",
+      "channelid": "239829218052111932",
+      "token": "8DfH26iLMGhcJRY2EJ6fqEKV.C68so6.4CuLrAxLmzoS32by85HbhYlZ12M"
     }
   ],
   "simcraft_opt": [
     {
-      "executable": "",
-      "website": "",
-      "htmldir": "",
-      "default_realm": "",
-      "region": "",
+      "website": "https://simc.discord.me/",
+      "htmldir": "/var/www/simc/",
+      "default_realm": "magtheridon",
+      "executable": "/usr/local/sbin/simc-715",
+      "region": "eu",
       "allow_iteration_parameter": false,
       "default_iterations": "25000"
     }
