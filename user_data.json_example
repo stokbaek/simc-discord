@@ -9,6 +9,7 @@
   "simcraft_opt": [
     {
       "website": "https://simc.discord.me/",
+      "api_key:" "BATTLE.NET API KEY"
       "htmldir": "/var/www/simc/",
       "default_realm": "magtheridon",
       "executable": "/usr/local/sbin/simc-715",
