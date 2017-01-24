@@ -9,13 +9,15 @@
   "simcraft_opt": [
     {
       "website": "https://simc.discord.me/",
-      "api_key:" "BATTLE.NET API KEY"
+      "api_key:" "BATTLE.NET API KEY",
       "htmldir": "/var/www/simc/",
       "default_realm": "magtheridon",
       "executable": "/usr/local/sbin/simc-715",
       "region": "eu",
       "allow_iteration_parameter": false,
-      "default_iterations": "25000"
+      "default_iterations": "25000",
+      "fightstyles": ["Patchwerk", "LightMovement" ,"HeavyMovement", "HecticAddCleave", "HelterSkelter"],
+      "aoe_targets": 4
     }
   ]
 }

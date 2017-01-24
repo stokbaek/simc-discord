@@ -4,6 +4,8 @@
 -r      -realm                 **realm name** *(Default is Magtheridon)*
 -s      -scale                  **yes/no** *(Default is no)*
 -d      -data                   **armory/addon** *(Default is armory)*
+-f      -fightstyle           **Choose between different fightstyles**
+-a      -aoe                    **yes/no** *(Default is no)*
 -v      -version              **gives the version of simulationcraft being used**
 
 ● Simulate using armory with stat scaling:
