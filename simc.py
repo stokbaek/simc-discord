@@ -5,6 +5,7 @@ import time
 import json
 import urllib
 import urllib.request
+from urllib.parse import quote
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
@@ -46,7 +47,8 @@ def check_simc():
 
 
 def check_spec(realm, char, api_key):
-    url = "https://eu.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (realm, char, api_key)
+    url = "https://eu.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (realm, quote(char),
+                                                                                                   api_key)
     response = urllib.request.urlopen(url)
     data = json.loads(response.read().decode('utf-8'))
     for i in range(len(data['talents'][0]['talents'])):
@@ -63,8 +65,8 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                                                enemy)
     else:
         options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
-                  'fight_style=%s enemy=%s' % (
-                      region, realm, char, scale, htmldir, char, filename, threads, iterations, fightstyle, enemy)
+                  'fight_style=%s enemy=%s' % (region, realm, char, scale, htmldir, char, filename, threads, iterations,
+                                               fightstyle, enemy)
 
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
