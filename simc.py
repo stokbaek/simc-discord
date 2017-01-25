@@ -58,15 +58,15 @@ def check_spec(realm, char, api_key):
                 return role
 
 
-async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, loop, message):
+async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, api_key, loop, message):
+    scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
+    options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
+              'fight_style=%s enemy=%s apikey=%s' % (scale, scale_stats, htmldir, char, filename, threads, iterations,
+                                                     fightstyle, enemy, api_key)
     if data == 'addon':
-        options = 'calculate_scale_factors=%s html=%ssims/%s/%s.html threads=%s iterations=%s input=%s ' \
-                  'fight_style=%s enemy=%s' % (scale, htmldir, char, filename, threads, iterations, addon, fightstyle,
-                                               enemy)
+        options += ' input=%s' % addon
     else:
-        options = 'armory=%s,%s,%s calculate_scale_factors=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
-                  'fight_style=%s enemy=%s' % (region, realm, char, scale, htmldir, char, filename, threads, iterations,
-                                               fightstyle, enemy)
+        options += ' armory=%s,%s,%s' % (region, realm, char)
 
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
     os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
@@ -230,7 +230,7 @@ async def on_message(message):
                     filename = '%s-%s' % (char, timestr)
                     await bot.send_message(message.channel, msg)
                     bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
-                                             enemy, loop, message))
+                                             enemy, api_key, loop, message))
 
 
 @bot.event
