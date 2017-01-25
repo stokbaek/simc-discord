@@ -6,7 +6,7 @@ The following things are needed to run the bot:
 * Python Discord lib: https://github.com/Rapptz/discord.py
 * Webservice on the server to hand out a link to the finished simulation.
 * A working version of simulationcraft TCI
-* Blizzard API key (This is needed to use armory): https://github.com/simulationcraft/simc/wiki/BattleArmoryAPI
+* Blizzard API key (This is needed to use armory): Keys needs to be added in user_data and it can be generated here: https://dev.battle.net
 
 Tested systems:
 - [x] Debian 8
@@ -30,11 +30,13 @@ Here is an example on how it can be done:
 
 *Options:*
 ```
--c	-character	InGame name
--r	-realm		Realm (Default is Magtheridon)
--s	-scale		yes/no (Default is no)
--d	-data		armory/addon (Default is armory)
--v	-version	gives the version of simulationcraft being used
+-c  -character    in-game name
+-r  -realm        realm name (Default is Magtheridon)
+-s  -scale        yes/no (Default is no)
+-d  -data         armory/addon (Default is armory)
+-f  -fightstyle   Choose between different fightstyles
+-a  -aoe          yes/no (Default is no)
+-v  -version      Gives the version of simulationcraft being used
 ```
 * Simulate using armory with stat scaling:
 
