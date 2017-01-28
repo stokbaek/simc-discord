@@ -51,14 +51,19 @@ def check_spec(realm, char, api_key):
                                                                                                    api_key)
     response = urllib.request.urlopen(url)
     data = json.loads(response.read().decode('utf-8'))
-    for i in range(len(data['talents'][0]['talents'])):
-        for line in data['talents'][0]['talents'][i]:
-            if 'spec' in line:
-                role = data['talents'][0]['talents'][i]['spec']['role']
+    spec = 0
+    for i in range(len(data['talents'])):
+        for line in data['talents']:
+            if 'selected' in line:
+                role = data['talents'][spec]['spec']['role']
+                print(role)
                 return role
+            else:
+                spec += +1
 
 
-async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, api_key, loop, message):
+async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, api_key, message):
+    loop = True
     scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
     options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
               'fight_style=%s enemy=%s apikey=%s' % (scale, scale_stats, htmldir, char, filename, threads, iterations,
@@ -111,7 +116,6 @@ async def on_message(message):
     realm = user_opt['simcraft_opt'][0]['default_realm']
     region = user_opt['simcraft_opt'][0]['region']
     iterations = user_opt['simcraft_opt'][0]['default_iterations']
-    loop = True
     timestr = time.strftime("%Y%m%d-%H%M%S")
     scale = 0
     scaling = 'no'
@@ -167,9 +171,7 @@ async def on_message(message):
                                     fightstyle = temp[1]
                                     fstyle = True
                             if fstyle is not True:
-                                await bot.send_message(message.channel, 'Unknown fightstyle.\n'
-                                                                        'Supported Styles: ' + ', '.join(
-                                                                         user_opt['simcraft_opt'][0]['fightstyles']))
+                                await bot.send_message(message.channel, 'Unknown fightstyle.\nSupported Styles: ' + ', '.join(user_opt['simcraft_opt'][0]['fightstyles']))
                                 return
                         elif args[i].startswith(('a ', 'aoe ')):
                             temp = args[i].split()
@@ -230,7 +232,7 @@ async def on_message(message):
                     filename = '%s-%s' % (char, timestr)
                     await bot.send_message(message.channel, msg)
                     bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
-                                             enemy, api_key, loop, message))
+                                             enemy, api_key, message))
 
 
 @bot.event
