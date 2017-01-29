@@ -56,7 +56,6 @@ def check_spec(realm, char, api_key):
         for line in data['talents']:
             if 'selected' in line:
                 role = data['talents'][spec]['spec']['role']
-                print(role)
                 return role
             else:
                 spec += +1
