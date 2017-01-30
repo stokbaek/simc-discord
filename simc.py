@@ -80,12 +80,12 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
     process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
 
     await asyncio.sleep(1)
-    readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
-    readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
     while loop:
+        readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
+        readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
+        await asyncio.sleep(1)
         process_check = readstout.readlines()
         err_check = readsterr.readlines()
-        await asyncio.sleep(1)
         if len(err_check) > 0:
             if 'ERROR' in err_check[-1]:
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
