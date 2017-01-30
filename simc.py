@@ -1,4 +1,5 @@
 import os
+import subprocess
 import discord
 import asyncio
 import time
@@ -73,19 +74,23 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
         options += ' armory=%s,%s,%s' % (region, realm, char)
 
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
-    os.system(os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' ' + options + ' > ' + htmldir, 'debug',
-                           'simc.stout 2> ' + htmldir, 'debug', 'simc.sterr &'))
+    command = "%s %s" % (user_opt['simcraft_opt'][0]['executable'], options)
+    stout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "w")
+    sterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "w")
+    process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
+
     await asyncio.sleep(1)
     while loop:
         readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
         readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
+        await asyncio.sleep(1)
         process_check = readstout.readlines()
         err_check = readsterr.readlines()
-        await asyncio.sleep(1)
         if len(err_check) > 0:
             if 'ERROR' in err_check[-1]:
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                 await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
+                process.terminate()
                 return
         if len(process_check) > 1:
             if 'report took' in process_check[-2]:
@@ -93,6 +98,7 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                 link = 'Simulation: %ssims/%s/%s.html' % (website, char, filename)
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                 await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
+                process.terminate()
             else:
                 if 'Generating' in process_check[-1]:
                     done = '█' * (20 - process_check[-1].count('.'))
