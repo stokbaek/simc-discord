@@ -143,7 +143,7 @@ async def on_message(message):
                 await bot.send_message(message.author, msg)
             elif args[1].startswith(('v', 'version')):
                 await bot.send_message(message.channel, check_version())
-                await bot.send_message(message.channel, *check_simc())
+                await bot.send_message(message.channel, check_simc())
             else:
                 if message.channel != channel:
                     await bot.send_message(message.channel, 'Please use the correct channel.')
