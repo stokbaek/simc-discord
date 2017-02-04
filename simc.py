@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import discord
 import asyncio
@@ -20,31 +21,32 @@ os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist
 
 
 def check_version():
-    git = os.popen('git rev-parse --is-inside-work-tree').read()
+    git = subprocess.check_output(['git', 'rev-parse', '--is-inside-work-tree']).decode(sys.stdout.encoding)
     if git:
-        check_https = os.popen('git remote -v').read().splitlines()
-        for i in range(len(check_https)):
-            if 'https' in check_https[i] and '(fetch)' in check_https[i]:
-                os.system('git fetch > ' + os.devnull)
-                git_commits = os.popen('git log --oneline origin/master').read().splitlines()
-                git_current = os.popen('git rev-parse HEAD').read()
-                if git_current[:7] in git_commits[0]:
-                    return 'Bot is up to date'
-                else:
-                    for checks in range(len(git_commits)):
-                        if git_current[:7] in git_commits[checks]:
-                            return 'Bot is %s commits behind master.' % checks
-            elif 'git@github.com' in check_https[i] and '(fetch)' in check_https[i]:
+        for line in subprocess.check_output(['git', 'remote', '-v']).decode(sys.stdout.encoding).split('\n'):
+            if 'https' in line and '(fetch)' in line:
+                subprocess.Popen(['git', 'fetch'], universal_newlines=True, stderr=None, stdout=None)
+                for output in subprocess.check_output(['git', 'status']).decode(sys.stdout.encoding).split('\n'):
+                    if 'Your branch is' in output:
+                        if 'up-to-date' in output:
+                            return 'Bot is up to date'
+                        elif 'behind' in output:
+                            return 'Update available for bot'
+                        else:
+                            return 'Bot version unknown'
+            elif 'git@github.com' in git and '(fetch)' in git:
                 return 'Bot version unknown'
     else:
         return 'Bot version unknown'
 
 
 def check_simc():
-    os.system(
-        os.path.join(user_opt['simcraft_opt'][0]['executable'] + ' > ' + htmldir, 'debug', 'simc.ver 2> ' + os.devnull))
-    readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
-    return readversion.read().splitlines()
+    null = open(os.devnull, 'w')
+    stdout = open(os.path.join(htmldir, 'debug', 'simc.ver'), "w")
+    subprocess.Popen(user_opt['simcraft_opt'][0]['executable'], universal_newlines=True, stderr=null, stdout=stdout)
+    time.sleep(1)
+    readversion = open('/var/www/simc-beta/debug/simc.ver', 'r')
+    return readversion.readline().rstrip('\n')
 
 
 def check_spec(realm, char, api_key):
@@ -78,7 +80,6 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
     stout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "w")
     sterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "w")
     process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
-
     await asyncio.sleep(1)
     while loop:
         readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
@@ -101,8 +102,8 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                 process.terminate()
             else:
                 if 'Generating' in process_check[-1]:
-                    done = '█' * (20 - process_check[-1].count('.'))
-                    missing = '░' * (process_check[-1].count('.'))
+                    done = '' * (20 - process_check[-1].count('.'))
+                    missing = '' * (process_check[-1].count('.'))
                     progressbar = done + missing
                     procent = 100 - process_check[-1].count('.') * 5
                     load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
@@ -176,7 +177,8 @@ async def on_message(message):
                                     fightstyle = temp[1]
                                     fstyle = True
                             if fstyle is not True:
-                                await bot.send_message(message.channel, 'Unknown fightstyle.\nSupported Styles: ' + ', '.join(user_opt['simcraft_opt'][0]['fightstyles']))
+                                await bot.send_message(message.channel, 'Unknown fightstyle.\nSupported Styles: ' +
+                                                       ', '.join(user_opt['simcraft_opt'][0]['fightstyles']))
                                 return
                         elif args[i].startswith(('a ', 'aoe ')):
                             temp = args[i].split()
@@ -246,7 +248,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print(check_version())
-    print(*check_simc())
+    print(check_simc())
     print('--------------')
     await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
 
