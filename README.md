@@ -22,7 +22,7 @@ Setting the `executable` in the `user_data.json` for Windows can be abit tricky.
 Here is an example on how it can be done:
 
 `"executable": "START /B C:\\Simulationcraft^(x64^)\\710-03\\simc.exe",`
-* `START` makes it run in the background, this is needed to get the update icon rotating in discord
+* `START` makes it run in the background, this is needed to give a progress bar in discord
 * `/B` allows output to be written to file
 * `^` is windows way to escape a character. If `( )` is not escaped will it fail because it cannot find path
 
