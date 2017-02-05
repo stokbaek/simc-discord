@@ -102,8 +102,8 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                 process.terminate()
             else:
                 if 'Generating' in process_check[-1]:
-                    done = '' * (20 - process_check[-1].count('.'))
-                    missing = '' * (process_check[-1].count('.'))
+                    done = '█' * (20 - process_check[-1].count('.'))
+                    missing = '░' * (process_check[-1].count('.'))
                     progressbar = done + missing
                     procent = 100 - process_check[-1].count('.') * 5
                     load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
