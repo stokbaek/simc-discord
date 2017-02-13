@@ -48,8 +48,8 @@ def check_simc():
     return readversion.readline().rstrip('\n')
 
 
-async def check_spec(realm, char, api_key):
-    url = "https://eu.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (realm, quote(char),
+async def check_spec(region, realm, char, api_key):
+    url = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (region, realm, quote(char),
                                                                                                    api_key)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -231,7 +231,7 @@ async def on_message(message):
                                     return
 
                     if data != 'addon':
-                        api = await check_spec(realm, char, api_key)
+                        api = await check_spec(region, realm, char, api_key)
                         if api == 'HEALING':
                             await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
                             return
