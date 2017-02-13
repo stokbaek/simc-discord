@@ -2,11 +2,10 @@ import os
 import sys
 import subprocess
 import discord
+import aiohttp
 import asyncio
 import time
 import json
-import urllib
-import urllib.request
 from urllib.parse import quote
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -49,19 +48,23 @@ def check_simc():
     return readversion.readline().rstrip('\n')
 
 
-def check_spec(realm, char, api_key):
+async def check_spec(realm, char, api_key):
     url = "https://eu.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (realm, quote(char),
                                                                                                    api_key)
-    response = urllib.request.urlopen(url)
-    data = json.loads(response.read().decode('utf-8'))
-    spec = 0
-    for i in range(len(data['talents'])):
-        for line in data['talents']:
-            if 'selected' in line:
-                role = data['talents'][spec]['spec']['role']
-                return role
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            data = await response.json()
+            if 'reason' in data:
+                return data['reason']
             else:
-                spec += +1
+                spec = 0
+                for i in range(len(data['talents'])):
+                    for line in data['talents']:
+                        if 'selected' in line:
+                            role = data['talents'][spec]['spec']['role']
+                            return role
+                        else:
+                            spec += +1
 
 
 async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, api_key, message):
@@ -228,8 +231,13 @@ async def on_message(message):
                                     return
 
                     if data != 'addon':
-                        if check_spec(realm, char, api_key) == 'HEALING':
+                        api = await check_spec(region, realm, char, apikey)
+                        if api == 'HEALING':
                             await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
+                            return
+                        elif not api == 'DPS' and not api == 'TANK':
+                            msg = 'Something went wrong: %s' % (api)
+                            await bot.send_message(message.channel, msg)
                             return
                     await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
                     msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nAoE: %s\nIterations: ' \
