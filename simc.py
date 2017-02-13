@@ -231,7 +231,7 @@ async def on_message(message):
                                     return
 
                     if data != 'addon':
-                        api = await check_spec(region, realm, char, apikey)
+                        api = await check_spec(region, realm, char, api_key)
                         if api == 'HEALING':
                             await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
                             return
