@@ -241,7 +241,7 @@ async def on_message(message):
                             await bot.send_message(message.channel, msg)
                             return
                     for item in user_opt['simcraft_opt'][0]['fightstyles']:
-                        if item == fightstyle:
+                        if item.lower() == fightstyle.lower():
                             movements = movements + '**__' + item + '__**, '
                         else:
                             movements = movements + item + ', '
