@@ -44,13 +44,13 @@ def check_simc():
     stdout = open(os.path.join(htmldir, 'debug', 'simc.ver'), "w")
     subprocess.Popen(user_opt['simcraft_opt'][0]['executable'], universal_newlines=True, stderr=null, stdout=stdout)
     time.sleep(1)
-    readversion = open('/var/www/simc-beta/debug/simc.ver', 'r')
+    readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
     return readversion.readline().rstrip('\n')
 
 
 async def check_spec(region, realm, char, api_key):
-    url = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (region, realm, quote(char),
-                                                                                                   api_key)
+    url = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (region, realm,
+                                                                                                   quote(char), api_key)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             data = await response.json()
@@ -134,6 +134,7 @@ async def on_message(message):
     aoe = 'no'
     enemy = ''
     fightstyle = user_opt['simcraft_opt'][0]['fightstyles'][0]
+    movements = ''
     args = message.content.lower()
 
     if message.author == bot.user:
@@ -239,11 +240,16 @@ async def on_message(message):
                             msg = 'Something went wrong: %s' % (api)
                             await bot.send_message(message.channel, msg)
                             return
+                    for item in user_opt['simcraft_opt'][0]['fightstyles']:
+                        if item == fightstyle:
+                            movements = movements + '**__' + item + '__**, '
+                        else:
+                            movements = movements + item + ', '
                     await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
                     msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nAoE: %s\nIterations: ' \
-                          '%s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(),
-                                                         fightstyle.capitalize(), aoe.capitalize(), iterations,
-                                                         scaling.capitalize(), data.capitalize())
+                          '%s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(), movements,
+                                                         aoe.capitalize(), iterations, scaling.capitalize(),
+                                                         data.capitalize())
                     filename = '%s-%s' % (char, timestr)
                     await bot.send_message(message.channel, msg)
                     bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
