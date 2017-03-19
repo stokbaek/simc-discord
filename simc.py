@@ -13,12 +13,12 @@ with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
 bot = discord.Client()
-threads = os.cpu_count()
 simc_opts = user_opt['simcraft_opt'][0]
 server_opts = user_opt['server_opt'][0]
+threads = os.cpu_count()
 if 'threads' in simc_opts:
     threads=simc_opts['threads']
-process_priority = 'normal'
+process_priority = 'below_normal'
 if 'process_priority' in simc_opts:
     process_priority=simc_opts['process_priority']
 htmldir = simc_opts['htmldir']
