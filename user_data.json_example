@@ -17,7 +17,9 @@
       "allow_iteration_parameter": false,
       "default_iterations": "25000",
       "fightstyles": ["Patchwerk", "LightMovement" ,"HeavyMovement", "HecticAddCleave", "HelterSkelter"],
-      "aoe_targets": 4
+      "aoe_targets": 4,
+      "threads": 6,
+      "process_priority": "low"
     }
   ]
 }
