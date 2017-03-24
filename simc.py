@@ -20,7 +20,7 @@ if 'threads' in simc_opts:
     threads=simc_opts['threads']
 process_priority = 'below_normal'
 if 'process_priority' in simc_opts:
-    process_priority=simc_opts['process_priority']
+    process_priority = simc_opts['process_priority']
 htmldir = simc_opts['htmldir']
 website = simc_opts['website']
 os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
@@ -74,12 +74,14 @@ async def check_spec(region, realm, char, api_key):
                             spec += +1
 
 
-async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, api_key, message):
+async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, lenght, api_key, message):
     loop = True
     scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
     options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
-              'fight_style=%s enemy=%s apikey=%s process_priority=%s' % (scale, scale_stats, htmldir, char, filename, threads, iterations,
-                                                     fightstyle, enemy, api_key, process_priority)
+              'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s' % (scale, scale_stats, htmldir, char,
+                                                                                     filename, threads, iterations,
+                                                                                     fightstyle, enemy, api_key,
+                                                                                     process_priority, lenght)
     if data == 'addon':
         options += ' input=%s' % addon
     else:
@@ -142,6 +144,7 @@ async def on_message(message):
     enemy = ''
     fightstyle = simc_opts['fightstyles'][0]
     movements = ''
+    length = simc_opts['lenght']
     args = message.content.lower()
 
     if message.author == bot.user:
@@ -194,6 +197,9 @@ async def on_message(message):
                         elif args[i].startswith(('a ', 'aoe ')):
                             temp = args[i].split()
                             aoe = temp[1]
+                        elif args[i].startswith(('l ', 'length ')):
+                            temp = args[i].split()
+                            length = temp[1]
                         else:
                             await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
                             return
@@ -253,14 +259,14 @@ async def on_message(message):
                         else:
                             movements = movements + item + ', '
                     await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
-                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nAoE: %s\nIterations: ' \
-                          '%s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(), movements,
-                                                         aoe.capitalize(), iterations, scaling.capitalize(),
-                                                         data.capitalize())
+                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
+                          'Iterations: %s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(), movements,
+                                                                     length, aoe.capitalize(), iterations,
+                                                                     scaling.capitalize(), data.capitalize())
                     filename = '%s-%s' % (char, timestr)
                     await bot.send_message(message.channel, msg)
                     bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
-                                             enemy, api_key, message))
+                                             enemy, length, api_key, message))
 
 
 @bot.event

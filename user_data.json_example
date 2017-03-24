@@ -19,7 +19,8 @@
       "fightstyles": ["Patchwerk", "LightMovement" ,"HeavyMovement", "HecticAddCleave", "HelterSkelter"],
       "aoe_targets": 4,
       "threads": 6,
-      "process_priority": "low"
+      "process_priority": "low",
+      "lenght": 400
     }
   ]
 }
