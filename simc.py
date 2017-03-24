@@ -17,7 +17,7 @@ simc_opts = user_opt['simcraft_opt'][0]
 server_opts = user_opt['server_opt'][0]
 threads = os.cpu_count()
 if 'threads' in simc_opts:
-    threads=simc_opts['threads']
+    threads = simc_opts['threads']
 process_priority = 'below_normal'
 if 'process_priority' in simc_opts:
     process_priority = simc_opts['process_priority']
@@ -74,7 +74,8 @@ async def check_spec(region, realm, char, api_key):
                             spec += +1
 
 
-async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, lenght, api_key, message):
+async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, lenght, l_fixed,
+              api_key, message):
     loop = True
     scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
     options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
@@ -86,6 +87,9 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
         options += ' input=%s' % addon
     else:
         options += ' armory=%s,%s,%s' % (region, realm, char)
+
+    if l_fixed == 1:
+        options += ' vary_combat_length=0.0 fixed_time=1'
 
     load = await bot.send_message(message.channel, 'Simulating: Starting...')
     command = "%s %s" % (simc_opts['executable'], options)
@@ -144,7 +148,8 @@ async def on_message(message):
     enemy = ''
     fightstyle = simc_opts['fightstyles'][0]
     movements = ''
-    length = simc_opts['lenght']
+    length = simc_opts['length']
+    l_fixed = 0
     args = message.content.lower()
 
     if message.author == bot.user:
@@ -200,6 +205,9 @@ async def on_message(message):
                         elif args[i].startswith(('l ', 'length ')):
                             temp = args[i].split()
                             length = temp[1]
+                            if len(temp) > 2:
+                                if temp[2] == 'fixed':
+                                    l_fixed = 1
                         else:
                             await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
                             return
@@ -266,7 +274,7 @@ async def on_message(message):
                     filename = '%s-%s' % (char, timestr)
                     await bot.send_message(message.channel, msg)
                     bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
-                                             enemy, length, api_key, message))
+                                             enemy, length, l_fixed, api_key, message))
 
 
 @bot.event
