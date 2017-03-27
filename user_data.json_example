@@ -20,7 +20,7 @@
       "aoe_targets": 4,
       "threads": 6,
       "process_priority": "low",
-      "lenght": 400
+      "length": 400
     }
   ]
 }

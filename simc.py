@@ -74,7 +74,7 @@ async def check_spec(region, realm, char, api_key):
                             spec += +1
 
 
-async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, lenght, l_fixed,
+async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, length, l_fixed,
               api_key, message):
     loop = True
     scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
@@ -82,7 +82,7 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
               'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s' % (scale, scale_stats, htmldir, char,
                                                                                      filename, threads, iterations,
                                                                                      fightstyle, enemy, api_key,
-                                                                                     process_priority, lenght)
+                                                                                     process_priority, length)
     if data == 'addon':
         options += ' input=%s' % addon
     else:
