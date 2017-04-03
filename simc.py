@@ -51,8 +51,9 @@ def check_simc():
     stdout = open(os.path.join(htmldir, 'debug', 'simc.ver'), "w")
     subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
     time.sleep(1)
-    readversion = open(os.path.join(htmldir, 'debug', 'simc.ver'), 'r')
-    return readversion.readline().rstrip('\n')
+    with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
+        version = v.readline().rstrip('\n')
+    return version
 
 
 async def check_spec(region, realm, char, api_key):
@@ -98,11 +99,11 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
     process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
     await asyncio.sleep(1)
     while loop:
-        readstout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "r")
-        readsterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "r")
         await asyncio.sleep(1)
-        process_check = readstout.readlines()
-        err_check = readsterr.readlines()
+        with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as p:
+            process_check = p.readlines()
+        with open(os.path.join(htmldir, 'debug', 'simc.sterr'), errors='replace') as e:
+            err_check = e.readlines()
         if len(err_check) > 0:
             if 'ERROR' in err_check[-1]:
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
@@ -158,7 +159,8 @@ async def on_message(message):
         args = args.split('-')
         if args:
             if args[1].startswith(('h', 'help')):
-                msg = open('help.file', 'r', encoding='utf8').read()
+                with open('help.file', errors='replace') as h:
+                    msg = h.read()
                 await bot.send_message(message.author, msg)
             elif args[1].startswith(('v', 'version')):
                 await bot.send_message(message.channel, check_version())
