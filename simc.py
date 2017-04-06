@@ -24,7 +24,10 @@ if 'process_priority' in simc_opts:
 htmldir = simc_opts['htmldir']
 website = simc_opts['website']
 os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
-
+queued = 0
+busy = False
+busytime = 0
+user = ''
 
 def check_version():
     git = subprocess.check_output(['git', 'rev-parse', '--is-inside-work-tree']).decode(sys.stdout.encoding)
@@ -77,6 +80,7 @@ async def check_spec(region, realm, char, api_key):
 
 async def sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle, enemy, length, l_fixed,
               api_key, message):
+    global busy
     loop = True
     scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
     options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
@@ -109,6 +113,7 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                 await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
                 process.terminate()
+                busy = False
                 return
         if len(process_check) > 1:
             if 'report took' in process_check[-2]:
@@ -117,6 +122,7 @@ async def sim(realm, char, scale, filename, data, addon, region, iterations, fig
                 await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                 await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
                 process.terminate()
+                busy = False
             else:
                 if 'Generating' in process_check[-1]:
                     done = '█' * (20 - process_check[-1].count('.'))
@@ -133,6 +139,10 @@ def check(addon_data):
 
 @bot.event
 async def on_message(message):
+    global queued
+    global busy
+    global busytime
+    global user
     server = bot.get_server(server_opts['serverid'])
     channel = bot.get_channel(server_opts['channelid'])
     api_key = simc_opts['api_key']
@@ -168,6 +178,9 @@ async def on_message(message):
             else:
                 if message.channel != channel:
                     await bot.send_message(message.channel, 'Please use the correct channel.')
+                    return
+                if args[1].startswith(('q', 'queue')):
+                    await bot.send_message(message.channel, 'Queue: %s/%s' % (queued, server_opts['queue_limit']))
                     return
                 for i in range(len(args)):
                     if args[i] != '!simc ':
@@ -213,70 +226,91 @@ async def on_message(message):
                         else:
                             await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
                             return
-                if server.me.status != discord.Status.online:
-                    err_msg = 'Only one simulation can run at the same time.'
-                    await bot.send_message(message.channel, err_msg)
+                if char == '':
+                    await bot.send_message(message.channel, 'Character name is needed')
                     return
-                else:
-                    if char == '':
-                        await bot.send_message(message.channel, 'Character name is needed')
+                if scaling == 'yes':
+                    scale = 1
+                if aoe == 'yes':
+                    for targets in range(0, simc_opts['aoe_targets']):
+                        targets += + 1
+                        enemy += 'enemy=target%s ' % targets
+
+                os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
+                if busy:
+                    if (time.time() - busytime) > 600:
+                        busy = False
+                        await bot.change_presence(status=discord.Status.online,
+                                                  game=discord.Game(name='Sim: Ready'))
+                    if queued > server_opts['queue_limit']:
+                        await bot.send_message(message.channel, '**Queue is full, please try again later.**')
                         return
-                    if scaling == 'yes':
-                        scale = 1
-                    if aoe == 'yes':
-                        for targets in range(0, simc_opts['aoe_targets']):
-                            targets += + 1
-                            enemy += 'enemy=target%s ' % targets
+                    if server.me.status == discord.Status.idle:
+                        await bot.send_message(message.channel, '**Waiting for simc addon data from %s.**' % user)
+                        return
+                if data == 'addon':
+                    user = message.author.display_name
+                    await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
+                    msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
+                    await bot.send_message(message.author, msg)
+                    addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
+                    if addon_data is None:
+                        await bot.send_message(message.channel, 'No data given. Resetting session.')
+                        await bot.change_presence(status=discord.Status.online,
+                                                  game=discord.Game(name='Sim: Ready'))
+                        return
+                    else:
+                        healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
+                        addon = '%ssims/%s/%s-%s.simc' % (htmldir, char, char, timestr)
+                        f = open(addon, 'w')
+                        f.write(addon_data.content[:-4])
+                        f.close()
+                        for crole in healing_roles:
+                            crole = 'spec=' + crole
+                            if crole in addon_data.content:
+                                await bot.send_message(message.channel,
+                                                       'SimulationCraft does not support healing.')
+                                await bot.change_presence(status=discord.Status.online,
+                                                          game=discord.Game(name='Sim: Ready'))
+                                return
 
-                    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', char, 'test.file')), exist_ok=True)
-                    if data == 'addon':
-                        await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
-                        msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
-                        await bot.send_message(message.author, msg)
-                        addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
-                        if addon_data is None:
-                            await bot.send_message(message.channel, 'No data given. Resetting session.')
-                            await bot.change_presence(status=discord.Status.online,
-                                                      game=discord.Game(name='Sim: Ready'))
-                            return
-                        else:
-                            healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
-                            addon = '%ssims/%s/%s-%s.simc' % (htmldir, char, char, timestr)
-                            f = open(addon, 'w')
-                            f.write(addon_data.content[:-4])
-                            f.close()
-                            for crole in healing_roles:
-                                crole = 'spec=' + crole
-                                if crole in addon_data.content:
-                                    await bot.send_message(message.channel,
-                                                           'SimulationCraft does not support healing.')
-                                    await bot.change_presence(status=discord.Status.online,
-                                                              game=discord.Game(name='Sim: Ready'))
-                                    return
-
-                    if data != 'addon':
-                        api = await check_spec(region, realm, char, api_key)
-                        if api == 'HEALING':
-                            await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
-                            return
-                        elif not api == 'DPS' and not api == 'TANK':
-                            msg = 'Something went wrong: %s' % (api)
-                            await bot.send_message(message.channel, msg)
-                            return
-                    for item in simc_opts['fightstyles']:
-                        if item.lower() == fightstyle.lower():
-                            movements = movements + '**__' + item + '__**, '
-                        else:
-                            movements = movements + item + ', '
-                    await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
-                    msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
-                          'Iterations: %s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(), movements,
-                                                                     length, aoe.capitalize(), iterations,
-                                                                     scaling.capitalize(), data.capitalize())
-                    filename = '%s-%s' % (char, timestr)
+                if data != 'addon':
+                    api = await check_spec(region, realm, char, api_key)
+                    if api == 'HEALING':
+                        await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
+                        return
+                    elif not api == 'DPS' and not api == 'TANK':
+                        msg = 'Something went wrong: %s' % (api)
+                        await bot.send_message(message.channel, msg)
+                        return
+                for item in simc_opts['fightstyles']:
+                    if item.lower() == fightstyle.lower():
+                        movements = movements + '**__' + item + '__**, '
+                    else:
+                        movements = movements + item + ', '
+                if busy:
+                    queue_pos = queued + 1
+                    msg = 'Simulation queued. Queue position: %s' % queue_pos
                     await bot.send_message(message.channel, msg)
-                    bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
-                                             enemy, length, l_fixed, api_key, message))
+                queued += 1
+                queue = True
+                while queue:
+                    if busy:
+                        await asyncio.sleep(10)
+                    else:
+                        queue = False
+                        queued = queued - 1
+                busy = True
+                busytime = time.time()
+                await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
+                msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
+                      'Iterations: %s\nScaling: %s\nData: %s' % (realm.capitalize(), char.capitalize(), movements,
+                                                                 length, aoe.capitalize(), iterations,
+                                                                 scaling.capitalize(), data.capitalize())
+                filename = '%s-%s' % (char, timestr)
+                await bot.send_message(message.channel, msg)
+                bot.loop.create_task(sim(realm, char, scale, filename, data, addon, region, iterations, fightstyle,
+                                         enemy, length, l_fixed, api_key, message))
 
 
 @bot.event
