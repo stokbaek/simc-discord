@@ -61,8 +61,19 @@ def check_simc():
         version = v.readline().rstrip('\n')
     return version
 
+async def set_status():
+    if waiting:
+        await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
+    if len(sims) == server_opts['queue_limit']:
+        await bot.change_presence(status=discord.Status.dnd,
+                                  game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
+    else:
+        await bot.change_presence(status=discord.Status.online,
+                                  game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
 
-async def check_spec(region, realm, char, api_key):
+
+async def check_spec(region, realm, char):
+    global api_key
     url = "https://%s.api.battle.net/wow/character/%s/%s?fields=talents&locale=en_GB&apikey=%s" % (region, realm,
                                                                                                    quote(char), api_key)
     async with aiohttp.ClientSession() as session:
@@ -81,9 +92,70 @@ async def check_spec(region, realm, char, api_key):
                             spec += +1
 
 
+async def data_sim():
+    global api_key
+    global waiting
+    m_temp = ''
+    while not waiting:
+        waiting = True
+        if sims[user]['data'] == 'addon':
+            await set_status()
+            msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
+            await bot.send_message(sims[user]['message'].author, msg)
+            addon_data = await bot.wait_for_message(author=sims[user]['message'].author, check=check, timeout=60)
+            if addon_data is None:
+                await bot.send_message(sims[user]['message'].author, 'No data given. Resetting session.')
+                del sims[user]
+                waiting = False
+                await set_status()
+                return
+            else:
+                healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
+                sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
+                    htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
+                f = open(sims[user]['addon'], 'w')
+                f.write(addon_data.content[:-4])
+                f.close()
+                for crole in healing_roles:
+                    crole = 'spec=' + crole
+                    if crole in addon_data.content:
+                        await bot.send_message(sims[user]['message'].channel,
+                                               'SimulationCraft does not support healing.')
+                        del sims[user]
+                        waiting = False
+                        await set_status()
+                        return
+
+        if sims[user]['data'] != 'addon':
+            api = await check_spec(sims[user]['region'], sims[user]['realm'], sims[user]['char'])
+            if api == 'HEALING':
+                await bot.send_message(sims[user]['message'].channel, 'SimulationCraft does not support healing.')
+                waiting = False
+                del sims[user]
+                return
+            elif not api == 'DPS' and not api == 'TANK':
+                msg = 'Something went wrong: %s' % api
+                await bot.send_message(sims[user]['message'].channel, msg)
+                waiting = False
+                del sims[user]
+                return
+        for item in simc_opts['fightstyles']:
+            if item.lower() == sims[user]['fightstyle'].lower():
+                m_temp = m_temp + '**__' + item + '__**, '
+            else:
+                m_temp = m_temp + item + ', '
+        for key in sims[user]:
+            if key == 'movements':
+                sims[user]['movements'] = m_temp
+        if busy:
+            await bot.send_message(sims[user]['message'].channel, 'Simulation added to queue.')
+        bot.loop.create_task(sim())
+
 async def sim():
     global sims
     global busy
+    global waiting
+    waiting = False
     while not busy:
         busy = True
         sim_user = list(sorted(sims))[0]
@@ -106,14 +178,13 @@ async def sim():
                                                                                          sims[sim_user][
                                                                                              'length'])
         if sims[sim_user]['data'] == 'addon':
-            options += ' input=%s' % sims[sim_user]['d_addon']
+            options += ' input=%s' % sims[sim_user]['addon']
         else:
             options += ' armory=%s,%s,%s' % (sims[sim_user]['region'], sims[sim_user]['realm'], sims[sim_user]['char'])
 
         if sims[sim_user]['l_fixed'] == 1:
             options += ' vary_combat_length=0.0 fixed_time=1'
-
-        await bot.change_presence(status=discord.Status.dnd, game=discord.Game(name='Sim: In Progress'))
+        await set_status()
         msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
                   sims[sim_user]['realm'].capitalize(), sims[sim_user]['char'].capitalize(),
@@ -135,19 +206,23 @@ async def sim():
                 err_check = e.readlines()
             if len(err_check) > 0:
                 if 'ERROR' in err_check[-1]:
-                    await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                     await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
                     process.terminate()
                     del sims[sim_user]
-                    return
+                    await set_status()
+                    if len(sims) == 0:
+                        return
+                    else:
+                        bot.loop.create_task(sim())
+
             if len(process_check) > 1:
                 if 'report took' in process_check[-2]:
                     loop = False
-                    await bot.change_presence(status=discord.Status.online, game=discord.Game(name='Sim: Ready'))
                     await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
                     process.terminate()
                     busy = False
                     del sims[sim_user]
+                    await set_status()
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
@@ -173,43 +248,19 @@ async def on_message(message):
     global sims
     global api_key
     global waiting
-    m_temp = ''
     a_temp = ''
-    server = bot.get_server(server_opts['serverid'])
     channel = bot.get_channel(server_opts['channelid'])
-
     timestr = time.strftime("%Y%m%d-%H%M%S")
     args = message.content.lower()
     if message.author == bot.user:
         return
     elif args.startswith('!simc'):
-        user = timestr + '-' + str(message.author)
-        user_sim = {user: {'realm': simc_opts['default_realm'],
-                           'region': simc_opts['region'],
-                           'iterations': simc_opts['default_iterations'],
-                           'scale': 0,
-                           'scaling': 'no',
-                           'data': 'armory',
-                           'char': '',
-                           'aoe': 'no',
-                           'enemy': '',
-                           'd_addon': '',
-                           'fightstyle': simc_opts['fightstyles'][0],
-                           'movements': '',
-                           'length': simc_opts['length'],
-                           'l_fixed': 0,
-                           'timestr': time.strftime("%Y%m%d-%H%M%S"),
-                           'message': '',
-                           'run': False
-                           }
-                    }
-        sims.update(user_sim)
-        for key in sims[user]:
-            if key == 'message':
-                sims[user]['message'] = message
         args = args.split('-')
         if args:
-            if args[1].startswith(('h', 'help')):
+            if args is not list:
+                await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
+                return
+            elif args[1].startswith(('h', 'help')):
                 with open('help.file', errors='replace') as h:
                     msg = h.read()
                 await bot.send_message(message.author, msg)
@@ -237,6 +288,29 @@ async def on_message(message):
                                                '**Waiting for simc addon data from %s.**' %
                                                sims[user]['message'].author.display_name)
                         return
+                user = timestr + '-' + str(message.author)
+                user_sim = {user: {'realm': simc_opts['default_realm'],
+                                   'region': simc_opts['region'],
+                                   'iterations': simc_opts['default_iterations'],
+                                   'scale': 0,
+                                   'scaling': 'no',
+                                   'data': 'armory',
+                                   'char': '',
+                                   'aoe': 'no',
+                                   'enemy': '',
+                                   'addon': '',
+                                   'fightstyle': simc_opts['fightstyles'][0],
+                                   'movements': '',
+                                   'length': simc_opts['length'],
+                                   'l_fixed': 0,
+                                   'timestr': time.strftime("%Y%m%d-%H%M%S"),
+                                   'message': ''
+                                   }
+                            }
+                sims.update(user_sim)
+                for key in sims[user]:
+                    if key == 'message':
+                        sims[user]['message'] = message
                 for i in range(len(args)):
                     if args[i] != '!simc ':
                         if args[i].startswith(('r ', 'realm ')):
@@ -298,9 +372,11 @@ async def on_message(message):
                                             sims[user]['l_fixed'] = 1
                         else:
                             await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
+                            del sims[user]
                             return
                 if sims[user]['char'] == '':
                     await bot.send_message(message.channel, 'Character name is needed')
+                    del sims[user]
                     return
                 if sims[user]['scaling'] == 'yes':
                     for key in sims[user]:
@@ -316,62 +392,7 @@ async def on_message(message):
 
                 os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', sims[user]['char'], 'test.file')),
                             exist_ok=True)
-
-                if sims[user]['data'] == 'addon':
-                    waiting = True
-                    while waiting:
-                        await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
-                        msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
-                        await bot.send_message(message.author, msg)
-                        addon_data = await bot.wait_for_message(author=message.author, check=check, timeout=60)
-                        if addon_data is None:
-                            await bot.send_message(message.author, 'No data given. Resetting session.')
-                            await bot.change_presence(status=discord.Status.online,
-                                                      game=discord.Game(name='Sim: Ready'))
-                            waiting = False
-                            return
-                        else:
-                            healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
-                            sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
-                            htmldir, sims[user]['char'], sims[user]['char'], timestr)
-                            f = open(sims[user]['addon'], 'w')
-                            f.write(addon_data.content[:-4])
-                            f.close()
-                            for crole in healing_roles:
-                                crole = 'spec=' + crole
-                                if crole in addon_data.content:
-                                    await bot.send_message(message.channel,
-                                                           'SimulationCraft does not support healing.')
-                                    await bot.change_presence(status=discord.Status.online,
-                                                              game=discord.Game(name='Sim: Ready'))
-                                    waiting = False
-                                    return
-                            waiting = False
-
-                if sims[user]['data'] != 'addon':
-                    api = await check_spec(sims[user]['region'], sims[user]['realm'], sims[user]['char'], api_key)
-                    if api == 'HEALING':
-                        await bot.send_message(message.channel, 'SimulationCraft does not support healing.')
-                        return
-                    elif not api == 'DPS' and not api == 'TANK':
-                        msg = 'Something went wrong: %s' % api
-                        await bot.send_message(message.channel, msg)
-                        return
-                for item in simc_opts['fightstyles']:
-                    if item.lower() == sims[user]['fightstyle'].lower():
-                        m_temp = m_temp + '**__' + item + '__**, '
-                    else:
-                        m_temp = m_temp + item + ', '
-                for key in sims[user]:
-                    if key == 'movements':
-                        sims[user]['movements'] = m_temp
-                for key in sims[user]:
-                    if key == 'run':
-                        sims[user]['run'] = True
-                if sims[user]['run']:
-                    bot.loop.create_task(sim())
-                else:
-                    del sims[user]
+                bot.loop.create_task(data_sim())
 
 
 @bot.event
@@ -382,7 +403,6 @@ async def on_ready():
     print(check_version())
     print(check_simc())
     print('--------------')
-    await bot.change_presence(game=discord.Game(name='Simulation: Ready'))
-
+    await set_status()
 
 bot.run(server_opts['token'])
