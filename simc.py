@@ -257,10 +257,7 @@ async def on_message(message):
     elif args.startswith('!simc'):
         args = args.split('-')
         if args:
-            if args is not list:
-                await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
-                return
-            elif args[1].startswith(('h', 'help')):
+            if args[1].startswith(('h', 'help')):
                 with open('help.file', errors='replace') as h:
                     msg = h.read()
                 await bot.send_message(message.author, msg)
