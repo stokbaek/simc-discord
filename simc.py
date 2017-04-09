@@ -6,15 +6,25 @@ import aiohttp
 import asyncio
 import time
 import json
+import logging
 from urllib.parse import quote
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
-bot = discord.Client()
 simc_opts = user_opt['simcraft_opt'][0]
 server_opts = user_opt['server_opt'][0]
+
+logger = logging.getLogger('discord')
+level = logging.getLevelName(server_opts['loglevel'])
+logger.setLevel(level)
+handler = logging.FileHandler(filename=server_opts['logfile'], encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
+
+bot = discord.Client()
+server = bot.get_server(server_opts['serverid'])
 threads = os.cpu_count()
 if 'threads' in simc_opts:
     threads = simc_opts['threads']
@@ -33,29 +43,40 @@ sims = {}
 
 
 def check_version():
-    git = subprocess.check_output(['git', 'rev-parse', '--is-inside-work-tree']).decode(sys.stdout.encoding)
-    if git:
-        for line in subprocess.check_output(['git', 'remote', '-v']).decode(sys.stdout.encoding).split('\n'):
-            if 'https' in line and '(fetch)' in line:
-                subprocess.Popen(['git', 'fetch'], universal_newlines=True, stderr=None, stdout=None)
-                for output in subprocess.check_output(['git', 'status']).decode(sys.stdout.encoding).split('\n'):
-                    if 'Your branch is' in output:
-                        if 'up-to-date' in output:
-                            return 'Bot is up to date'
-                        elif 'behind' in output:
-                            return 'Update available for bot'
+    try:
+        git = subprocess.check_output(['git', 'rev-parse', '--is-inside-work-tree']).decode(sys.stdout.encoding)
+        if git:
+            for line in subprocess.check_output(['git', 'remote', '-v']).decode(sys.stdout.encoding).split('\n'):
+                if 'https' in line and '(fetch)' in line:
+                    subprocess.Popen(['git', 'fetch'], universal_newlines=True, stderr=None, stdout=None)
+                    for output in subprocess.check_output(['git', 'status']).decode(sys.stdout.encoding).split('\n'):
+                        if 'Your branch is' in output:
+                            if 'up-to-date' in output:
+                                return 'Bot is up to date'
+                            elif 'behind' in output:
+                                logger.info('Update available for bot.')
+                                return 'Update available for bot'
+                            else:
+                                return 'Bot version unknown'
                         else:
+                            logger.warning('Bot cannot compare itself to github. Local changes made?')
                             return 'Bot version unknown'
-            elif 'git@github.com' in git and '(fetch)' in git:
-                return 'Bot version unknown'
-    else:
-        return 'Bot version unknown'
+                elif 'git@github.com' in git and '(fetch)' in git:
+                    return 'Bot version unknown'
+        else:
+            return 'Bot version unknown'
+    except:
+        logger.warning('Cannot connect to github.')
+        pass
 
 
 def check_simc():
     null = open(os.devnull, 'w')
     stdout = open(os.path.join(htmldir, 'debug', 'simc.ver'), "w")
-    subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
+    try:
+        subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
+    except:
+        logger.critical('Simulationcraft program could not be run. Check permissions or if the file exists')
     time.sleep(1)
     with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
         version = v.readline().rstrip('\n')
@@ -63,13 +84,25 @@ def check_simc():
 
 async def set_status():
     if waiting:
-        await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
+        try:
+            await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
+        except:
+            logger.warning('Failed to set presence for addon data input.')
+            pass
     if len(sims) == server_opts['queue_limit']:
-        await bot.change_presence(status=discord.Status.dnd,
-                                  game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
+        try:
+            await bot.change_presence(status=discord.Status.dnd,
+                                      game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
+        except:
+            logger.warning('Failed to set presence for full queue.')
+            pass
     else:
-        await bot.change_presence(status=discord.Status.online,
-                                  game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
+        try:
+            await bot.change_presence(status=discord.Status.online,
+                                      game=discord.Game(name='Sim: %s/%s' % (len(sims), server_opts['queue_limit'])))
+        except:
+            logger.warning('Failed to set presence for queue.')
+            pass
 
 
 async def check_spec(region, realm, char):
@@ -78,18 +111,22 @@ async def check_spec(region, realm, char):
                                                                                                    quote(char), api_key)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
-            data = await response.json()
-            if 'reason' in data:
-                return data['reason']
-            else:
-                spec = 0
-                for i in range(len(data['talents'])):
-                    for line in data['talents']:
-                        if 'selected' in line:
-                            role = data['talents'][spec]['spec']['role']
-                            return role
-                        else:
-                            spec += +1
+            try:
+                data = await response.json()
+                if 'reason' in data:
+                    return data['reason']
+                else:
+                    spec = 0
+                    for i in range(len(data['talents'])):
+                        for line in data['talents']:
+                            if 'selected' in line:
+                                role = data['talents'][spec]['spec']['role']
+                                return role
+                            else:
+                                spec += +1
+            except:
+                logger.critical('Error in aiohttp request: %s', url)
+                return 'Failed to look up class spec from armory.'
 
 
 async def data_sim():
@@ -108,6 +145,7 @@ async def data_sim():
                 del sims[user]
                 waiting = False
                 await set_status()
+                logger.info('No data was given to bot. Aborting sim.')
                 return
             else:
                 healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
@@ -124,6 +162,7 @@ async def data_sim():
                         del sims[user]
                         waiting = False
                         await set_status()
+                        logger.info('Character is a healer. Aborting sim.')
                         return
 
         if sims[user]['data'] != 'addon':
@@ -132,12 +171,14 @@ async def data_sim():
                 await bot.send_message(sims[user]['message'].channel, 'SimulationCraft does not support healing.')
                 waiting = False
                 del sims[user]
+                logger.info('Character is a healer. Aborting sim.')
                 return
             elif not api == 'DPS' and not api == 'TANK':
                 msg = 'Something went wrong: %s' % api
                 await bot.send_message(sims[user]['message'].channel, msg)
                 waiting = False
                 del sims[user]
+                logger.warning('Simulation could not start: %s' % api)
                 return
         for item in simc_opts['fightstyles']:
             if item.lower() == sims[user]['fightstyle'].lower():
@@ -152,6 +193,7 @@ async def data_sim():
             await bot.send_message(sims[user]['message'].channel,
                                    'Simulation added to queue. Queue position: %s' % position)
             await set_status()
+            logger.info('A new simulation has been added to queue')
         bot.loop.create_task(sim())
 
 async def sim():
@@ -188,18 +230,38 @@ async def sim():
         if sims[sim_user]['l_fixed'] == 1:
             options += ' vary_combat_length=0.0 fixed_time=1'
         await set_status()
-        msg = '\nSimulationCraft:\nRealm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
+        command = "%s %s" % (simc_opts['executable'], options)
+        stout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "w")
+        sterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "w")
+        try:
+            process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
+            logger.info('----------------------------------')
+            logger.info('%s started a simulation:' % sims[sim_user]['message'].author)
+            logger.info('Character: ' + sims[sim_user]['char'].capitalize())
+            logger.info('Realm: ' + sims[sim_user]['realm'].capitalize())
+            logger.info('Fightstyle: ' + sims[sim_user]['movements'][
+                                         sims[sim_user]['movements'].find("**__") + 4:sims[sim_user]['movements'].find(
+                                             "__**")])
+            logger.info('Fight Length: ' + str(sims[sim_user]['length']))
+            logger.info('AOE: ' + sims[sim_user]['aoe'])
+            logger.info('Iterations: ' + sims[sim_user]['iterations'])
+            logger.info('Scaling: ' + sims[sim_user]['scaling'].capitalize())
+            logger.info('Data: ' + sims[sim_user]['data'].capitalize())
+            logger.info('----------------------------------')
+        except:
+            del sims[sim_user]
+            await set_status()
+            await bot.send_message(sims[sim_user]['message'].channel, 'Simulation could not start.')
+            logger.critical('Bot could not start simulationcraft program.')
+            return
+        msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
                   sims[sim_user]['realm'].capitalize(), sims[sim_user]['char'].capitalize(),
                   sims[sim_user]['movements'],
                   sims[sim_user]['length'], sims[sim_user]['aoe'].capitalize(), sims[sim_user]['iterations'],
                   sims[sim_user]['scaling'].capitalize(), sims[sim_user]['data'].capitalize())
-        await bot.send_message(sims[sim_user]['message'].channel, msg)
+        await bot.send_message(sims[sim_user]['message'].channel,'\nSimulationCraft:\n' + msg)
         load = await bot.send_message(sims[sim_user]['message'].channel, 'Simulating: Starting...')
-        command = "%s %s" % (simc_opts['executable'], options)
-        stout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "w")
-        sterr = open(os.path.join(htmldir, 'debug', 'simc.sterr'), "w")
-        process = subprocess.Popen(command.split(" "), universal_newlines=True, stdout=stout, stderr=sterr)
         await asyncio.sleep(1)
         while loop:
             await asyncio.sleep(1)
@@ -213,6 +275,7 @@ async def sim():
                     process.terminate()
                     del sims[sim_user]
                     await set_status()
+                    logger.warning('Simulation failed: ' + '\n'.join(err_check))
                     if len(sims) == 0:
                         return
                     else:
@@ -221,11 +284,14 @@ async def sim():
             if len(process_check) > 1:
                 if 'report took' in process_check[-2]:
                     loop = False
-                    await bot.edit_message(load, link + ' {0.author.mention}'.format(message))
+                    await bot.edit_message(load, 'Simulation done.')
+                    await bot.send_message(sims[sim_user]['message'].channel,
+                                           link + ' {0.author.mention}'.format(message))
                     process.terminate()
                     busy = False
                     del sims[sim_user]
                     await set_status()
+                    logger.info('Simulation completed.')
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
@@ -236,8 +302,12 @@ async def sim():
                         missing = '░' * (process_check[-1].count('.'))
                         progressbar = done + missing
                         percentage = 100 - process_check[-1].count('.') * 5
-                        load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
-                                                      str(percentage) + '%')
+                        try:
+                            load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
+                                                        str(percentage) + '%')
+                        except:
+                            logger.warning('Failed updating progress')
+                            pass
 
 
 def check(addon_data):
@@ -260,149 +330,162 @@ async def on_message(message):
     elif args.startswith('!simc'):
         args = args.split('-')
         if args:
-            if args[1].startswith(('h', 'help')):
-                with open('help.file', errors='replace') as h:
-                    msg = h.read()
-                await bot.send_message(message.author, msg)
-            elif args[1].startswith(('v', 'version')):
-                await bot.send_message(message.channel, check_version())
-                await bot.send_message(message.channel, check_simc())
-            else:
-                if message.channel != channel:
-                    await bot.send_message(message.channel, 'Please use the correct channel.')
-                    return
-                if args[1].startswith(('q', 'queue')):
+            try:
+                if args[1].startswith(('h', 'help')):
+                    with open('help.file', errors='replace') as h:
+                        msg = h.read()
+                    await bot.send_message(message.author, msg)
+                elif args[1].startswith(('v', 'version')):
+                    await bot.send_message(message.channel, check_version())
+                    await bot.send_message(message.channel, check_simc())
+                else:
+                    if message.channel != channel:
+                        await bot.send_message(message.channel, 'Please use the correct channel.')
+                        return
+                    if args[1].startswith(('q', 'queue')):
+                        if busy:
+                            await bot.send_message(message.channel,
+                                                   'Queue: %s/%s' % (len(sims), server_opts['queue_limit']))
+                        else:
+                            await bot.send_message(message.channel, 'Queue is empty')
+                        return
                     if busy:
-                        await bot.send_message(message.channel,
-                                               'Queue: %s/%s' % (len(sims), server_opts['queue_limit']))
-                    else:
-                        await bot.send_message(message.channel, 'Queue is empty')
-                    return
-                if busy:
-                    if len(sims) > server_opts['queue_limit'] - 1:
-                        await bot.send_message(sims[user]['message'].channel,
-                                               '**Queue is full, please try again later.**')
-                        return
-                    if waiting:
-                        await bot.send_message(sims[user]['message'].channel,
-                                               '**Waiting for simc addon data from %s.**' %
-                                               sims[user]['message'].author.display_name)
-                        return
-                user = timestr + '-' + str(message.author)
-                user_sim = {user: {'realm': simc_opts['default_realm'],
-                                   'region': simc_opts['region'],
-                                   'iterations': simc_opts['default_iterations'],
-                                   'scale': 0,
-                                   'scaling': 'no',
-                                   'data': 'armory',
-                                   'char': '',
-                                   'aoe': 'no',
-                                   'enemy': '',
-                                   'addon': '',
-                                   'fightstyle': simc_opts['fightstyles'][0],
-                                   'movements': '',
-                                   'length': simc_opts['length'],
-                                   'l_fixed': 0,
-                                   'timestr': time.strftime("%Y%m%d-%H%M%S"),
-                                   'message': ''
-                                   }
-                            }
-                sims.update(user_sim)
-                for key in sims[user]:
-                    if key == 'message':
-                        sims[user]['message'] = message
-                for i in range(len(args)):
-                    if args[i] != '!simc ':
-                        if args[i].startswith(('r ', 'realm ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'realm':
-                                    sims[user]['realm'] = temp[1]
-                        elif args[i].startswith(('c ', 'char ', 'character ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'char':
-                                    sims[user]['char'] = temp[1]
-                        elif args[i].startswith(('s ', 'scaling ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'scaling':
-                                    sims[user]['scaling'] = temp[1]
-                        elif args[i].startswith(('d ', 'data ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'data':
-                                    sims[user]['data'] = temp[1]
-                        elif args[i].startswith(('i ', 'iterations ')):
-                            if simc_opts['allow_iteration_parameter']:
+                        if len(sims) > server_opts['queue_limit'] - 1:
+                            await bot.send_message(sims[user]['message'].channel,
+                                                   '**Queue is full, please try again later.**')
+                            logger.info('Sim could not be started because queue is full.')
+                            return
+                        if waiting:
+                            await bot.send_message(sims[user]['message'].channel,
+                                                   '**Waiting for simc addon data from %s.**' %
+                                                   sims[user]['message'].author.display_name)
+                            logger.info('Failed starting sim. Still waiting on data from previous sim')
+                            return
+                    user = timestr + '-' + str(message.author)
+                    user_sim = {user: {'realm': simc_opts['default_realm'],
+                                       'region': simc_opts['region'],
+                                       'iterations': simc_opts['default_iterations'],
+                                       'scale': 0,
+                                       'scaling': 'no',
+                                       'data': 'armory',
+                                       'char': '',
+                                       'aoe': 'no',
+                                       'enemy': '',
+                                       'addon': '',
+                                       'fightstyle': simc_opts['fightstyles'][0],
+                                       'movements': '',
+                                       'length': simc_opts['length'],
+                                       'l_fixed': 0,
+                                       'timestr': time.strftime("%Y%m%d-%H%M%S"),
+                                       'message': ''
+                                       }
+                                }
+                    sims.update(user_sim)
+                    for key in sims[user]:
+                        if key == 'message':
+                            sims[user]['message'] = message
+                    for i in range(len(args)):
+                        if args[i] != '!simc ':
+                            if args[i].startswith(('r ', 'realm ')):
                                 temp = args[i].split()
                                 for key in sims[user]:
-                                    if key == 'iterations':
-                                        sims[user]['iterations'] = temp[1]
+                                    if key == 'realm':
+                                        sims[user]['realm'] = temp[1]
+                            elif args[i].startswith(('c ', 'char ', 'character ')):
+                                temp = args[i].split()
+                                for key in sims[user]:
+                                    if key == 'char':
+                                        sims[user]['char'] = temp[1]
+                            elif args[i].startswith(('s ', 'scaling ')):
+                                temp = args[i].split()
+                                for key in sims[user]:
+                                    if key == 'scaling':
+                                        sims[user]['scaling'] = temp[1]
+                            elif args[i].startswith(('d ', 'data ')):
+                                temp = args[i].split()
+                                for key in sims[user]:
+                                    if key == 'data':
+                                        sims[user]['data'] = temp[1]
+                            elif args[i].startswith(('i ', 'iterations ')):
+                                if simc_opts['allow_iteration_parameter']:
+                                    temp = args[i].split()
+                                    for key in sims[user]:
+                                        if key == 'iterations':
+                                            sims[user]['iterations'] = temp[1]
+                                else:
+                                    await bot.send_message(message.channel, 'Custom iterations is disabled')
+                                    logger.info('%s tried using custom iterations while the option is disabled')
+                                    return
+                            elif args[i].startswith(('f ', 'fight ', 'fightstyle ')):
+                                fstyle = False
+                                temp = args[i].split()
+                                for opt in range(len(simc_opts['fightstyles'])):
+                                    if temp[1] == simc_opts['fightstyles'][opt].lower():
+                                        for key in sims[user]:
+                                            if key == 'fightstyle':
+                                                sims[user]['fightstyle'] = temp[1]
+                                        fstyle = True
+                                if fstyle is not True:
+                                    await bot.send_message(message.channel, 'Unknown fightstyle.\nSupported Styles: ' +
+                                                           ', '.join(simc_opts['fightstyles']))
+                                    logger.info(
+                                        '%s tried starting sim with unknown fightstyle: %s' % (message.author, temp[1]))
+                                    return
+                            elif args[i].startswith(('a ', 'aoe ')):
+                                temp = args[i].split()
+                                for key in sims[user]:
+                                    if key == 'aoe':
+                                        sims[user]['aoe'] = temp[1]
+                            elif args[i].startswith(('l ', 'length ')):
+                                temp = args[i].split()
+                                for key in sims[user]:
+                                    if key == 'length':
+                                        sims[user]['length'] = temp[1]
+                                if len(temp) > 2:
+                                    if temp[2] == 'fixed':
+                                        for key in sims[user]:
+                                            if key == 'l_fixed':
+                                                sims[user]['l_fixed'] = 1
                             else:
-                                await bot.send_message(message.channel, 'Custom iterations is disabled')
+                                await bot.send_message(message.channel,
+                                                       'Unknown command. Use !simc -h/help for commands')
+                                del sims[user]
+                                logger.info('Unknown command given to bot.')
                                 return
-                        elif args[i].startswith(('f ', 'fight ', 'fightstyle ')):
-                            fstyle = False
-                            temp = args[i].split()
-                            for opt in range(len(simc_opts['fightstyles'])):
-                                if temp[1] == simc_opts['fightstyles'][opt].lower():
-                                    for key in sims[user]:
-                                        if key == 'fightstyle':
-                                            sims[user]['fightstyle'] = temp[1]
-                                    fstyle = True
-                            if fstyle is not True:
-                                await bot.send_message(message.channel, 'Unknown fightstyle.\nSupported Styles: ' +
-                                                       ', '.join(simc_opts['fightstyles']))
-                                return
-                        elif args[i].startswith(('a ', 'aoe ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'aoe':
-                                    sims[user]['aoe'] = temp[1]
-                        elif args[i].startswith(('l ', 'length ')):
-                            temp = args[i].split()
-                            for key in sims[user]:
-                                if key == 'length':
-                                    sims[user]['length'] = temp[1]
-                            if len(temp) > 2:
-                                if temp[2] == 'fixed':
-                                    for key in sims[user]:
-                                        if key == 'l_fixed':
-                                            sims[user]['l_fixed'] = 1
-                        else:
-                            await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
-                            del sims[user]
-                            return
-                if sims[user]['char'] == '':
-                    await bot.send_message(message.channel, 'Character name is needed')
-                    del sims[user]
-                    return
-                if sims[user]['scaling'] == 'yes':
-                    for key in sims[user]:
-                        if key == 'scale':
-                            sims[user]['scale'] = 1
-                if sims[user]['aoe'] == 'yes':
-                    for targets in range(0, simc_opts['aoe_targets']):
-                        targets += + 1
-                        a_temp += 'enemy=target%s ' % targets
-                    for key in sims[user]:
-                        if key == 'enemy':
-                            sims[user]['enemy'] = a_temp
+                    if sims[user]['char'] == '':
+                        await bot.send_message(message.channel, 'Character name is needed')
+                        del sims[user]
+                        logger.info('No character name given. Aborting sim.')
+                        return
+                    if sims[user]['scaling'] == 'yes':
+                        for key in sims[user]:
+                            if key == 'scale':
+                                sims[user]['scale'] = 1
+                    if sims[user]['aoe'] == 'yes':
+                        for targets in range(0, simc_opts['aoe_targets']):
+                            targets += + 1
+                            a_temp += 'enemy=target%s ' % targets
+                        for key in sims[user]:
+                            if key == 'enemy':
+                                sims[user]['enemy'] = a_temp
 
-                os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', sims[user]['char'], 'test.file')),
-                            exist_ok=True)
-                bot.loop.create_task(data_sim())
+                    os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', sims[user]['char'], 'test.file')),
+                                exist_ok=True)
+                    bot.loop.create_task(data_sim())
+            except:
+                await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
+                logger.info('No command given to bot.')
+                return
 
 
 @bot.event
 async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print(check_version())
-    print(check_simc())
-    print('--------------')
+    logger.info('Logged in as')
+    logger.info(bot.user.name)
+    logger.info(bot.user.id)
+    check_version()
+    logger.info(check_simc())
+    logger.info('--------------')
     await set_status()
 
 bot.run(server_opts['token'])

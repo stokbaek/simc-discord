@@ -4,7 +4,9 @@
       "serverid": "654146666167092783",
       "channelid": "239829218052111932",
       "token": "8DfH26iLMGhcJRY2EJ6fqEKV.C68so6.4CuLrAxLmzoS32by85HbhYlZ12M",
-      "queue_limit": 10
+      "queue_limit": 10,
+      "loglevel": "INFO",
+      "logfile": "simc.log"
     }
   ],
   "simcraft_opt": [
