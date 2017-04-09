@@ -148,8 +148,9 @@ async def data_sim():
             if key == 'movements':
                 sims[user]['movements'] = m_temp
         if busy:
+            position = len(sims) - 1
             await bot.send_message(sims[user]['message'].channel,
-                                   'Simulation added to queue. Queue position: %s' % len(sims))
+                                   'Simulation added to queue. Queue position: %s' % position)
             await set_status()
         bot.loop.create_task(sim())
 
