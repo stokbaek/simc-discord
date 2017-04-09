@@ -57,10 +57,8 @@ def check_version():
                                 logger.info('Update available for bot.')
                                 return 'Update available for bot'
                             else:
+                                logger.warning('Bot cannot compare itself to github. Local changes made?')
                                 return 'Bot version unknown'
-                        else:
-                            logger.warning('Bot cannot compare itself to github. Local changes made?')
-                            return 'Bot version unknown'
                 elif 'git@github.com' in git and '(fetch)' in git:
                     return 'Bot version unknown'
         else:
