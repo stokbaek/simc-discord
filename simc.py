@@ -57,11 +57,18 @@ def check_version():
                                 logger.info('Update available for bot.')
                                 return 'Update available for bot'
                             else:
-                                logger.warning('Bot cannot compare itself to github. Local changes made?')
+                                logger.warning('Bot cant check version:  Local changes made?')
                                 return 'Bot version unknown'
+                        elif 'On branch' in output:
+                            logger.warning('Bot cant check version: Is it on a branch?')
+                            return 'Bot version unknown'
+
                 elif 'git@github.com' in git and '(fetch)' in git:
+                    logger.warning(
+                        'Bot cant check version: Git is not set up correcly for bot to be able to check its version.')
                     return 'Bot version unknown'
         else:
+            logger.warning('Bot cant check version: Unknown git error.')
             return 'Bot version unknown'
     except:
         logger.warning('Cannot connect to github.')
@@ -73,8 +80,8 @@ def check_simc():
     stdout = open(os.path.join(htmldir, 'debug', 'simc.ver'), "w")
     try:
         subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
-    except:
-        logger.critical('Simulationcraft program could not be run. Check permissions or if the file exists')
+    except FileNotFoundError as e:
+        logger.critical('Simulationcraft program could not be run. (ERR: %s)' %e)
     time.sleep(1)
     with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
         version = v.readline().rstrip('\n')
@@ -248,11 +255,11 @@ async def sim():
             logger.info('Scaling: ' + sims[sim_user]['scaling'].capitalize())
             logger.info('Data: ' + sims[sim_user]['data'].capitalize())
             logger.info('----------------------------------')
-        except:
+        except FileNotFoundError as e:
+            await bot.send_message(sims[sim_user]['message'].channel, 'ERR: Simulation could not start.')
+            logger.critical('Bot could not start simulationcraft program. (ERR: %s)' % e)
             del sims[sim_user]
             await set_status()
-            await bot.send_message(sims[sim_user]['message'].channel, 'Simulation could not start.')
-            logger.critical('Bot could not start simulationcraft program.')
             return
         msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
@@ -327,6 +334,8 @@ async def on_message(message):
     args = message.content.lower()
     if message.author == bot.user:
         return
+    if message.server is None:
+        logger.info('%s sent follow data to bot: %s' % (message.author, message.content))
     elif args.startswith('!simc'):
         args = args.split(' -')
         if args:
@@ -472,9 +481,9 @@ async def on_message(message):
                     os.makedirs(os.path.dirname(os.path.join(htmldir + 'sims', sims[user]['char'], 'test.file')),
                                 exist_ok=True)
                     bot.loop.create_task(data_sim())
-            except:
+            except IndexError as e:
                 await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
-                logger.info('No command given to bot.')
+                logger.info('No command given to bot.(ERR: %s)' %e)
                 return
 
 
