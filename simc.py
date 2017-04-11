@@ -164,7 +164,7 @@ async def data_sim():
                         return
 
         if sims[user]['data'] != 'addon':
-            api = await check_spec(sims[user]['region'], sims[user]['realm'], sims[user]['char'])
+            api = await check_spec(sims[user]['region'], sims[user]['realm'].replace('_', '-'), sims[user]['char'])
             if api == 'HEALING':
                 await bot.send_message(sims[user]['message'].channel, 'SimulationCraft does not support healing.')
                 waiting = False
@@ -223,7 +223,9 @@ async def sim():
         if sims[sim_user]['data'] == 'addon':
             options += ' input=%s' % sims[sim_user]['addon']
         else:
-            options += ' armory=%s,%s,%s' % (sims[sim_user]['region'], sims[sim_user]['realm'], sims[sim_user]['char'])
+            options += ' armory=%s,%s,%s' % (
+                                             sims[sim_user]['region'], sims[sim_user]['realm'].replace('_', '-'),
+                                             sims[sim_user]['char'])
 
         if sims[sim_user]['l_fixed'] == 1:
             options += ' vary_combat_length=0.0 fixed_time=1'
@@ -236,7 +238,7 @@ async def sim():
             logger.info('----------------------------------')
             logger.info('%s started a simulation:' % sims[sim_user]['message'].author)
             logger.info('Character: ' + sims[sim_user]['char'].capitalize())
-            logger.info('Realm: ' + sims[sim_user]['realm'].capitalize())
+            logger.info('Realm: ' + sims[sim_user]['realm'].title().replace('_', ' '))
             logger.info('Fightstyle: ' + sims[sim_user]['movements'][
                                          sims[sim_user]['movements'].find("**__") + 4:sims[sim_user]['movements'].find(
                                              "__**")])
@@ -254,11 +256,11 @@ async def sim():
             return
         msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
-                  sims[sim_user]['realm'].capitalize(), sims[sim_user]['char'].capitalize(),
+                  sims[sim_user]['realm'].title().replace('_', ' '), sims[sim_user]['char'].capitalize(),
                   sims[sim_user]['movements'],
                   sims[sim_user]['length'], sims[sim_user]['aoe'].capitalize(), sims[sim_user]['iterations'],
                   sims[sim_user]['scaling'].capitalize(), sims[sim_user]['data'].capitalize())
-        await bot.send_message(sims[sim_user]['message'].channel,'\nSimulationCraft:\n' + msg)
+        await bot.send_message(sims[sim_user]['message'].channel, '\nSimulationCraft:\n' + msg)
         load = await bot.send_message(sims[sim_user]['message'].channel, 'Simulating: Starting...')
         await asyncio.sleep(1)
         while loop:
@@ -302,7 +304,7 @@ async def sim():
                         percentage = 100 - process_check[-1].count('.') * 5
                         try:
                             load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
-                                                        str(percentage) + '%')
+                                                          str(percentage) + '%')
                         except:
                             logger.warning('Failed updating progress')
                             pass
@@ -326,7 +328,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
     elif args.startswith('!simc'):
-        args = args.split('-')
+        args = args.split(' -')
         if args:
             try:
                 if args[1].startswith(('h', 'help')):
@@ -383,12 +385,12 @@ async def on_message(message):
                         if key == 'message':
                             sims[user]['message'] = message
                     for i in range(len(args)):
-                        if args[i] != '!simc ':
+                        if args[i] != '!simc':
                             if args[i].startswith(('r ', 'realm ')):
                                 temp = args[i].split()
                                 for key in sims[user]:
                                     if key == 'realm':
-                                        sims[user]['realm'] = temp[1]
+                                        sims[user]['realm'] = "_".join(temp[1:])
                             elif args[i].startswith(('c ', 'char ', 'character ')):
                                 temp = args[i].split()
                                 for key in sims[user]:
