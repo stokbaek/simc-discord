@@ -4,9 +4,10 @@ import subprocess
 import discord
 import aiohttp
 import asyncio
-import time
 import json
 import logging
+import time
+from datetime import datetime
 from urllib.parse import quote
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -82,7 +83,7 @@ def check_simc():
         subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
     except FileNotFoundError as e:
         logger.critical('Simulationcraft program could not be run. (ERR: %s)' %e)
-    time.sleep(1)
+        time.sleep(1)
     with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
         version = v.readline().rstrip('\n')
     return version
@@ -278,16 +279,21 @@ async def sim():
             with open(os.path.join(htmldir, 'debug', 'simc.sterr'), errors='replace') as e:
                 err_check = e.readlines()
             if len(err_check) > 0:
+                print('test')
                 if 'ERROR' in err_check[-1]:
                     await bot.edit_message(load, 'Simulation failed: ' + '\n'.join(err_check))
                     process.terminate()
                     del sims[sim_user]
                     await set_status()
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
+                    loop = False
+                    busy = False
+                    print('test1')
                     if len(sims) == 0:
-                        busy = False
+                        print('test2')
                         return
                     else:
+                        print('test3')
                         bot.loop.create_task(sim())
 
             if len(process_check) > 1:
@@ -333,7 +339,7 @@ async def on_message(message):
     global waiting
     a_temp = ''
     channel = bot.get_channel(server_opts['channelid'])
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+    timestr = datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3]
     args = message.content.lower()
     if message.author == bot.user:
         return
@@ -388,7 +394,7 @@ async def on_message(message):
                                        'movements': '',
                                        'length': simc_opts['length'],
                                        'l_fixed': 0,
-                                       'timestr': time.strftime("%Y%m%d-%H%M%S"),
+                                       'timestr': datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3],
                                        'message': ''
                                        }
                                 }
