@@ -260,6 +260,7 @@ async def sim():
             logger.critical('Bot could not start simulationcraft program. (ERR: %s)' % e)
             del sims[sim_user]
             await set_status()
+            busy = False
             return
         msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
@@ -278,12 +279,13 @@ async def sim():
                 err_check = e.readlines()
             if len(err_check) > 0:
                 if 'ERROR' in err_check[-1]:
-                    await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
+                    await bot.edit_message(load, 'Simulation failed: ' + '\n'.join(err_check))
                     process.terminate()
                     del sims[sim_user]
                     await set_status()
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
                     if len(sims) == 0:
+                        busy = False
                         return
                     else:
                         bot.loop.create_task(sim())
@@ -302,6 +304,7 @@ async def sim():
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
+                        busy = False
                         return
                 else:
                     if 'Generating' in process_check[-1]:
