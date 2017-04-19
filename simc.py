@@ -310,7 +310,6 @@ async def sim():
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
-                        busy = False
                         return
                 else:
                     if 'Generating' in process_check[-1]:
