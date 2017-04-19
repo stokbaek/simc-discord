@@ -4,9 +4,10 @@ import subprocess
 import discord
 import aiohttp
 import asyncio
-import time
 import json
 import logging
+import time
+from datetime import datetime
 from urllib.parse import quote
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -260,6 +261,7 @@ async def sim():
             logger.critical('Bot could not start simulationcraft program. (ERR: %s)' % e)
             del sims[sim_user]
             await set_status()
+            busy = False
             return
         msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
               'Iterations: %s\nScaling: %s\nData: %s' % (
@@ -277,12 +279,15 @@ async def sim():
             with open(os.path.join(htmldir, 'debug', 'simc.sterr'), errors='replace') as e:
                 err_check = e.readlines()
             if len(err_check) > 0:
+                print('test')
                 if 'ERROR' in err_check[-1]:
-                    await bot.edit_message(load, 'Error, something went wrong: ' + website + 'debug/simc.sterr')
+                    await bot.edit_message(load, 'Simulation failed: ' + '\n'.join(err_check))
                     process.terminate()
                     del sims[sim_user]
                     await set_status()
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
+                    loop = False
+                    busy = False
                     if len(sims) == 0:
                         return
                     else:
@@ -330,7 +335,7 @@ async def on_message(message):
     global waiting
     a_temp = ''
     channel = bot.get_channel(server_opts['channelid'])
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+    timestr = datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3]
     args = message.content.lower()
     if message.author == bot.user:
         return
@@ -385,7 +390,7 @@ async def on_message(message):
                                        'movements': '',
                                        'length': simc_opts['length'],
                                        'l_fixed': 0,
-                                       'timestr': time.strftime("%Y%m%d-%H%M%S"),
+                                       'timestr': datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3],
                                        'message': ''
                                        }
                                 }
