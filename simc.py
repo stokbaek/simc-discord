@@ -83,7 +83,7 @@ def check_simc():
         subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
     except FileNotFoundError as e:
         logger.critical('Simulationcraft program could not be run. (ERR: %s)' %e)
-        time.sleep(1)
+    time.sleep(1)
     with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
         version = v.readline().rstrip('\n')
     return version
