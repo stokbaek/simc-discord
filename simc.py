@@ -288,12 +288,9 @@ async def sim():
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
                     loop = False
                     busy = False
-                    print('test1')
                     if len(sims) == 0:
-                        print('test2')
                         return
                     else:
-                        print('test3')
                         bot.loop.create_task(sim())
 
             if len(process_check) > 1:
