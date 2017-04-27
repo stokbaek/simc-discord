@@ -82,19 +82,13 @@ def check_simc():
     try:
         subprocess.Popen(simc_opts['executable'], universal_newlines=True, stderr=null, stdout=stdout)
     except FileNotFoundError as e:
-        logger.critical('Simulationcraft program could not be run. (ERR: %s)' %e)
+        logger.critical('Simulationcraft program could not be run. (ERR: %s)' % e)
     time.sleep(1)
     with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as v:
         version = v.readline().rstrip('\n')
     return version
 
 async def set_status():
-    if waiting:
-        try:
-            await bot.change_presence(status=discord.Status.idle, game=discord.Game(name='Sim: Waiting...'))
-        except:
-            logger.warning('Failed to set presence for addon data input.')
-            pass
     if len(sims) == server_opts['queue_limit']:
         try:
             await bot.change_presence(status=discord.Status.dnd,
@@ -279,7 +273,6 @@ async def sim():
             with open(os.path.join(htmldir, 'debug', 'simc.sterr'), errors='replace') as e:
                 err_check = e.readlines()
             if len(err_check) > 0:
-                print('test')
                 if 'ERROR' in err_check[-1]:
                     await bot.edit_message(load, 'Simulation failed: ' + '\n'.join(err_check))
                     process.terminate()
@@ -323,7 +316,8 @@ async def sim():
 
 
 def check(addon_data):
-    return addon_data.content.endswith('DONE')
+    if addon_data.channel.is_private:
+        return addon_data.content.endswith('DONE')
 
 
 @bot.event
@@ -331,15 +325,13 @@ async def on_message(message):
     global busy
     global user
     global sims
-    global api_key
-    global waiting
     a_temp = ''
     channel = bot.get_channel(server_opts['channelid'])
     timestr = datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3]
     args = message.content.lower()
     if message.author == bot.user:
         return
-    if message.server is None:
+    if message.channel.is_private:
         logger.info('%s sent follow data to bot: %s' % (message.author, message.content))
     elif args.startswith('!simc'):
         args = args.split(' -')
@@ -488,7 +480,7 @@ async def on_message(message):
                     bot.loop.create_task(data_sim())
             except IndexError as e:
                 await bot.send_message(message.channel, 'Unknown command. Use !simc -h/help for commands')
-                logger.info('No command given to bot.(ERR: %s)' %e)
+                logger.info('No command given to bot.(ERR: %s)' % e)
                 return
 
 
