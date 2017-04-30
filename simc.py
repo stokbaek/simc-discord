@@ -208,9 +208,13 @@ async def sim():
         link = 'Simulation: %ssims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
         message = sims[sim_user]['message']
         loop = True
+        if sims[sim_user]['ptr'] == 0:
+            ptr = 'No'
+        else:
+            ptr = 'Yes'
         scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
         options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
-                  'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s' % (sims[sim_user]['scale'],
+                  'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s ptr=%s' % (sims[sim_user]['scale'],
                                                                                          scale_stats, htmldir,
                                                                                          sims[sim_user]['char'],
                                                                                          filename,
@@ -220,8 +224,8 @@ async def sim():
                                                                                          sims[sim_user]['enemy'],
                                                                                          api_key,
                                                                                          process_priority,
-                                                                                         sims[sim_user][
-                                                                                             'length'])
+                                                                                         sims[sim_user]['length'],
+                                                                                         sims[sim_user]['ptr'])
         if sims[sim_user]['data'] == 'addon':
             options += ' input=%s' % sims[sim_user]['addon']
         else:
@@ -249,6 +253,7 @@ async def sim():
             logger.info('Iterations: ' + sims[sim_user]['iterations'])
             logger.info('Scaling: ' + sims[sim_user]['scaling'].capitalize())
             logger.info('Data: ' + sims[sim_user]['data'].capitalize())
+            logger.info('PTR: ' + ptr)
             logger.info('----------------------------------')
         except FileNotFoundError as e:
             await bot.send_message(sims[sim_user]['message'].channel, 'ERR: Simulation could not start.')
@@ -258,11 +263,11 @@ async def sim():
             busy = False
             return
         msg = 'Realm: %s\nCharacter: %s\nFightstyle: %s\nFight Length: %s\nAoE: %s\n' \
-              'Iterations: %s\nScaling: %s\nData: %s' % (
+              'Iterations: %s\nScaling: %s\nData: %s\nPTR: %s' % (
                   sims[sim_user]['realm'].title().replace('_', ' '), sims[sim_user]['char'].capitalize(),
                   sims[sim_user]['movements'],
                   sims[sim_user]['length'], sims[sim_user]['aoe'].capitalize(), sims[sim_user]['iterations'],
-                  sims[sim_user]['scaling'].capitalize(), sims[sim_user]['data'].capitalize())
+                  sims[sim_user]['scaling'].capitalize(), sims[sim_user]['data'].capitalize(), ptr)
         await bot.send_message(sims[sim_user]['message'].channel, '\nSimulationCraft:\n' + msg)
         load = await bot.send_message(sims[sim_user]['message'].channel, 'Simulating: Starting...')
         await asyncio.sleep(1)
@@ -382,6 +387,7 @@ async def on_message(message):
                                        'movements': '',
                                        'length': simc_opts['length'],
                                        'l_fixed': 0,
+                                       'ptr': 0,
                                        'timestr': datetime.utcnow().strftime('%Y%m%d.%H%m%S%f')[:-3],
                                        'message': ''
                                        }
@@ -452,6 +458,10 @@ async def on_message(message):
                                         for key in sims[user]:
                                             if key == 'l_fixed':
                                                 sims[user]['l_fixed'] = 1
+                            elif args[i] == 'ptr':
+                                for key in sims[user]:
+                                    if key == 'ptr':
+                                        sims[user]['ptr'] = 1
                             else:
                                 await bot.send_message(message.channel,
                                                        'Unknown command. Use !simc -h/help for commands')
