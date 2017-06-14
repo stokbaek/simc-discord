@@ -7,10 +7,21 @@ import asyncio
 import json
 import logging
 import time
+import threading
 from datetime import datetime
 from urllib.parse import quote
+from flask import Flask, session, app, render_template, request
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+def webservice():
+    app.run(host='0.0.0.0', threaded=True)
+
+
+app = Flask(__name__)
+thread = threading.Thread(target=webservice, args=())
+thread.daemon = True
+thread.start()
+
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
@@ -38,9 +49,11 @@ os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist
 waiting = False
 busy = False
 busytime = 0
+addon_data = None
 user = ''
 api_key = simc_opts['api_key']
 sims = {}
+shutdown_url = "http://127.0.0.1:5000/submit"
 
 
 def check_version():
@@ -129,18 +142,47 @@ async def check_spec(region, realm, char):
                 return 'Failed to look up class spec from armory.'
 
 
+@app.route('/<addon_url>')
+def my_form(addon_url):
+    print(os.getpid())
+    return render_template("data_receieve.html")
+
+
+@app.route('/submit', methods=['POST'])
+def submit_textarea():
+    global addon_data
+    global wait_data
+    text = request.form['text']
+    addon_data = text
+    with open(sims[user]['addon'], "w") as fo:
+        fo.write(text)
+    wait_data = False
+    return 'Data received'
+
+
 async def data_sim():
     global api_key
     global waiting
+    global addon_url
+    global wait_data
     m_temp = ''
     while not waiting:
         waiting = True
+        timer = 0
         if sims[user]['data'] == 'addon':
+            sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
+                htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
+            addon_url = '%s-%s' % (sims[user]['char'], sims[user]['timestr'])
             await set_status()
-            msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
+            msg = 'You can add your addon data here: http://simc.mutinyeu.com:5000/%s' % addon_url
             await bot.send_message(sims[user]['message'].author, msg)
-            addon_data = await bot.wait_for_message(author=sims[user]['message'].author, check=check, timeout=60)
-            if addon_data is None:
+            wait_data = True
+            while wait_data:
+                timer += 1
+                await asyncio.sleep(1)
+                if timer > 60:
+                    wait_data = False
+            if not os.path.isfile(sims[user]['addon']):
                 await bot.send_message(sims[user]['message'].author, 'No data given. Resetting session.')
                 del sims[user]
                 waiting = False
@@ -149,14 +191,9 @@ async def data_sim():
                 return
             else:
                 healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
-                sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
-                    htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
-                f = open(sims[user]['addon'], 'w')
-                f.write(addon_data.content[:-4])
-                f.close()
                 for crole in healing_roles:
                     crole = 'spec=' + crole
-                    if crole in addon_data.content:
+                    if crole in addon_data:
                         await bot.send_message(sims[user]['message'].channel,
                                                'SimulationCraft does not support healing.')
                         del sims[user]
