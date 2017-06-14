@@ -22,6 +22,7 @@ thread = threading.Thread(target=webservice, args=())
 thread.daemon = True
 thread.start()
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
