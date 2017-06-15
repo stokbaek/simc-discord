@@ -3,6 +3,7 @@ SimulationCraft Bot for discord.
 
 The following things are needed to run the bot:
 * Python 3.5+
+* Flask 0.12+: http://flask.pocoo.org/
 * Python Discord lib: https://github.com/Rapptz/discord.py
 * Webservice on the server to hand out a link to the finished simulation.
 * A working version of simulationcraft TCI
@@ -31,11 +32,13 @@ Here is an example on how it can be done:
 *Options:*
 ```
 -c  -character    in-game name
--r  -realm        realm name (Default is Magtheridon)
--s  -scale        yes/no (Default is no)
--d  -data         armory/addon (Default is armory)
+-r  -realm        realm name
+-s  -scale        yes/no
+-d  -data         armory/addon
 -f  -fightstyle   Choose between different fightstyles
--a  -aoe          yes/no (Default is no)
+-l  -length       Choose fight length in seconds
+-a  -aoe          yes/no
+    -ptr          Enables PTR build on sim
 -v  -version      Gives the version of simulationcraft being used
 ```
 * Simulate using armory with stat scaling:

@@ -13,7 +13,7 @@
   ],
   "simcraft_opt": [
     {
-      "website": "https://simc.discord.me/",
+      "website": "http://simc.discord.me",
       "api_key": "BATTLE.NET API KEY",
       "htmldir": "/var/www/simc/",
       "default_realm": "magtheridon",

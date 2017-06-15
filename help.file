@@ -7,7 +7,7 @@
 -f      -fightstyle          **Choose between different fightstyles**
 -l      -length                **Choose fight length in seconds** *(Default is 400)*
 -a     -aoe                     **yes/no** *(Default is no)*
--p     -ptr                      **Enables PTR build on sim**
+         -ptr                      **Enables PTR build on sim**
 -v     -version              **Gives the version of simulationcraft being used**
 
 

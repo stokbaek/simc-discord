@@ -10,7 +10,7 @@ import time
 import threading
 from datetime import datetime
 from urllib.parse import quote
-from flask import Flask, app, render_template, request
+from flask import Flask, app, render_template, request, redirect
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
@@ -141,10 +141,17 @@ async def check_spec(region, realm, char):
                 logger.critical('Error in aiohttp request: %s', url)
                 return 'Failed to look up class spec from armory.'
 
+@app.route('/')
+def default():
+    return redirect('https://github.com/stokbaek/simc-discord', code=302)
+
 
 @app.route('/<addon_url>')
 def my_form(addon_url):
-    return render_template("data_receieve.html")
+    if wait_data:
+        return render_template("data_receieve.html")
+    else:
+        return render_template("403.html")
 
 
 @app.route('/submit', methods=['POST'])
@@ -172,7 +179,7 @@ async def data_sim():
                 htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
             addon_url = '%s-%s' % (sims[user]['char'], sims[user]['timestr'])
             await set_status()
-            msg = 'You can add your addon data here: http://simc.mutinyeu.com:5001/%s' % addon_url
+            msg = 'You can add your addon data here: %s:%s/%s' % (website, server_opts['listen_port'], addon_url)
             await bot.send_message(sims[user]['message'].author, msg)
             wait_data = True
             while wait_data:
@@ -240,7 +247,7 @@ async def sim():
         busy = True
         sim_user = list(sorted(sims))[0]
         filename = '%s-%s' % (sims[sim_user]['char'], sims[sim_user]['timestr'])
-        link = 'Simulation: %ssims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
+        link = 'Simulation: %s/sims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
         message = sims[sim_user]['message']
         loop = True
         if sims[sim_user]['ptr'] == 0:
