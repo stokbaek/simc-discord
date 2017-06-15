@@ -10,19 +10,9 @@ import time
 import threading
 from datetime import datetime
 from urllib.parse import quote
-from flask import Flask, session, app, render_template, request
+from flask import Flask, app, render_template, request
 
 
-def webservice():
-    app.run(host='0.0.0.0', threaded=True)
-
-
-app = Flask(__name__)
-thread = threading.Thread(target=webservice, args=())
-thread.daemon = True
-thread.start()
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
@@ -36,6 +26,16 @@ handler = logging.FileHandler(filename=server_opts['logfile'], encoding='utf-8',
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
+
+def webservice():
+    app.run(host=server_opts['listen_ip'], port=server_opts['listen_port'], threaded=True)
+
+
+app = Flask(__name__)
+thread = threading.Thread(target=webservice, args=())
+thread.daemon = True
+thread.start()
+
 bot = discord.Client()
 server = bot.get_server(server_opts['serverid'])
 threads = os.cpu_count()
@@ -48,13 +48,12 @@ htmldir = simc_opts['htmldir']
 website = simc_opts['website']
 os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
 waiting = False
+wait_data = False
 busy = False
-busytime = 0
 addon_data = None
 user = ''
 api_key = simc_opts['api_key']
 sims = {}
-shutdown_url = "http://127.0.0.1:5000/submit"
 
 
 def check_version():
@@ -145,7 +144,6 @@ async def check_spec(region, realm, char):
 
 @app.route('/<addon_url>')
 def my_form(addon_url):
-    print(os.getpid())
     return render_template("data_receieve.html")
 
 
@@ -158,13 +156,12 @@ def submit_textarea():
     with open(sims[user]['addon'], "w") as fo:
         fo.write(text)
     wait_data = False
-    return 'Data received'
+    return 'Data received\nThis page can now be closed'
 
 
 async def data_sim():
     global api_key
     global waiting
-    global addon_url
     global wait_data
     m_temp = ''
     while not waiting:
@@ -175,13 +172,13 @@ async def data_sim():
                 htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
             addon_url = '%s-%s' % (sims[user]['char'], sims[user]['timestr'])
             await set_status()
-            msg = 'You can add your addon data here: http://simc.mutinyeu.com:5000/%s' % addon_url
+            msg = 'You can add your addon data here: http://simc.mutinyeu.com:5001/%s' % addon_url
             await bot.send_message(sims[user]['message'].author, msg)
             wait_data = True
             while wait_data:
                 timer += 1
                 await asyncio.sleep(1)
-                if timer > 60:
+                if timer > simc_opts['data_timeout']:
                     wait_data = False
             if not os.path.isfile(sims[user]['addon']):
                 await bot.send_message(sims[user]['message'].author, 'No data given. Resetting session.')
@@ -324,6 +321,9 @@ async def sim():
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
                     loop = False
                     busy = False
+                    while wait_data:
+                        logger.info('Wont start next sim, still waiting on data')
+                        await asyncio.sleep(1)
                     if len(sims) == 0:
                         return
                     else:
@@ -340,6 +340,9 @@ async def sim():
                     del sims[sim_user]
                     await set_status()
                     logger.info('Simulation completed.')
+                    while wait_data:
+                        logger.info('Wont start next sim, still waiting on data')
+                        await asyncio.sleep(1)
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
@@ -384,9 +387,11 @@ async def on_message(message):
                     with open('help.file', errors='replace') as h:
                         msg = h.read()
                     await bot.send_message(message.author, msg)
+                    return
                 elif args[1].startswith(('v', 'version')):
                     await bot.send_message(message.channel, check_version())
                     await bot.send_message(message.channel, check_simc())
+                    return
                 else:
                     if message.channel != channel:
                         await bot.send_message(message.channel, 'Please use the correct channel.')
@@ -404,12 +409,12 @@ async def on_message(message):
                                                    '**Queue is full, please try again later.**')
                             logger.info('Sim could not be started because queue is full.')
                             return
-                        if waiting:
-                            await bot.send_message(sims[user]['message'].channel,
-                                                   '**Waiting for simc addon data from %s.**' %
-                                                   sims[user]['message'].author.display_name)
-                            logger.info('Failed starting sim. Still waiting on data from previous sim')
-                            return
+                    if waiting:
+                        await bot.send_message(message.channel,
+                                               '**Waiting for simc addon data from %s.**' %
+                                               sims[user]['message'].author.display_name)
+                        logger.info('Failed starting sim. Still waiting on data from previous sim')
+                        return
                     user = timestr + '-' + str(message.author)
                     user_sim = {user: {'realm': simc_opts['default_realm'],
                                        'region': simc_opts['region'],
