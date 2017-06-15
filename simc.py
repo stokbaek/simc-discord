@@ -12,7 +12,7 @@ from datetime import datetime
 from urllib.parse import quote
 from flask import Flask, app, render_template, request
 
-
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
     user_opt = json.load(data_file)
 
