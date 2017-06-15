@@ -6,12 +6,14 @@
       "token": "8DfH26iLMGhcJRY2EJ6fqEKV.C68so6.4CuLrAxLmzoS32by85HbhYlZ12M",
       "queue_limit": 10,
       "loglevel": "INFO",
-      "logfile": "simc.log"
+      "logfile": "simc.log",
+      "listen_ip": "0.0.0.0",
+      "listen_port": "5000"
     }
   ],
   "simcraft_opt": [
     {
-      "website": "https://simc.discord.me/",
+      "website": "http://simc.discord.me",
       "api_key": "BATTLE.NET API KEY",
       "htmldir": "/var/www/simc/",
       "default_realm": "magtheridon",
@@ -23,7 +25,8 @@
       "aoe_targets": 4,
       "threads": 6,
       "process_priority": "low",
-      "length": 400
+      "length": 400,
+      "data_timeout": 60
     }
   ]
 }

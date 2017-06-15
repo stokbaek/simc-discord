@@ -7,8 +7,10 @@ import asyncio
 import json
 import logging
 import time
+import threading
 from datetime import datetime
 from urllib.parse import quote
+from flask import Flask, app, render_template, request, redirect
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 with open('user_data.json') as data_file:
@@ -24,6 +26,16 @@ handler = logging.FileHandler(filename=server_opts['logfile'], encoding='utf-8',
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
+
+def webservice():
+    app.run(host=server_opts['listen_ip'], port=server_opts['listen_port'], threaded=True)
+
+
+app = Flask(__name__)
+thread = threading.Thread(target=webservice, args=())
+thread.daemon = True
+thread.start()
+
 bot = discord.Client()
 server = bot.get_server(server_opts['serverid'])
 threads = os.cpu_count()
@@ -36,8 +48,9 @@ htmldir = simc_opts['htmldir']
 website = simc_opts['website']
 os.makedirs(os.path.dirname(os.path.join(htmldir + 'debug', 'test.file')), exist_ok=True)
 waiting = False
+wait_data = False
 busy = False
-busytime = 0
+addon_data = None
 user = ''
 api_key = simc_opts['api_key']
 sims = {}
@@ -128,19 +141,53 @@ async def check_spec(region, realm, char):
                 logger.critical('Error in aiohttp request: %s', url)
                 return 'Failed to look up class spec from armory.'
 
+@app.route('/')
+def default():
+    return redirect('https://github.com/stokbaek/simc-discord', code=302)
+
+
+@app.route('/<addon_url>')
+def my_form(addon_url):
+    if wait_data:
+        return render_template("data_receieve.html")
+    else:
+        return render_template("403.html")
+
+
+@app.route('/submit', methods=['POST'])
+def submit_textarea():
+    global addon_data
+    global wait_data
+    text = request.form['text']
+    addon_data = text
+    with open(sims[user]['addon'], "w") as fo:
+        fo.write(text)
+    wait_data = False
+    return 'Data received\nThis page can now be closed'
+
 
 async def data_sim():
     global api_key
     global waiting
+    global wait_data
     m_temp = ''
     while not waiting:
         waiting = True
+        timer = 0
         if sims[user]['data'] == 'addon':
+            sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
+                htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
+            addon_url = '%s-%s' % (sims[user]['char'], sims[user]['timestr'])
             await set_status()
-            msg = 'Please paste the output of your simulationcraft addon here and finish with DONE'
+            msg = 'You can add your addon data here: %s:%s/%s' % (website, server_opts['listen_port'], addon_url)
             await bot.send_message(sims[user]['message'].author, msg)
-            addon_data = await bot.wait_for_message(author=sims[user]['message'].author, check=check, timeout=60)
-            if addon_data is None:
+            wait_data = True
+            while wait_data:
+                timer += 1
+                await asyncio.sleep(1)
+                if timer > simc_opts['data_timeout']:
+                    wait_data = False
+            if not os.path.isfile(sims[user]['addon']):
                 await bot.send_message(sims[user]['message'].author, 'No data given. Resetting session.')
                 del sims[user]
                 waiting = False
@@ -149,14 +196,9 @@ async def data_sim():
                 return
             else:
                 healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
-                sims[user]['addon'] = '%ssims/%s/%s-%s.simc' % (
-                    htmldir, sims[user]['char'], sims[user]['char'], sims[user]['timestr'])
-                f = open(sims[user]['addon'], 'w')
-                f.write(addon_data.content[:-4])
-                f.close()
                 for crole in healing_roles:
                     crole = 'spec=' + crole
-                    if crole in addon_data.content:
+                    if crole in addon_data:
                         await bot.send_message(sims[user]['message'].channel,
                                                'SimulationCraft does not support healing.')
                         del sims[user]
@@ -205,7 +247,7 @@ async def sim():
         busy = True
         sim_user = list(sorted(sims))[0]
         filename = '%s-%s' % (sims[sim_user]['char'], sims[sim_user]['timestr'])
-        link = 'Simulation: %ssims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
+        link = 'Simulation: %s/sims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
         message = sims[sim_user]['message']
         loop = True
         if sims[sim_user]['ptr'] == 0:
@@ -286,6 +328,9 @@ async def sim():
                     logger.warning('Simulation failed: ' + '\n'.join(err_check))
                     loop = False
                     busy = False
+                    while wait_data:
+                        logger.info('Wont start next sim, still waiting on data')
+                        await asyncio.sleep(1)
                     if len(sims) == 0:
                         return
                     else:
@@ -302,6 +347,9 @@ async def sim():
                     del sims[sim_user]
                     await set_status()
                     logger.info('Simulation completed.')
+                    while wait_data:
+                        logger.info('Wont start next sim, still waiting on data')
+                        await asyncio.sleep(1)
                     if len(sims) != 0:
                         bot.loop.create_task(sim())
                     else:
@@ -346,9 +394,11 @@ async def on_message(message):
                     with open('help.file', errors='replace') as h:
                         msg = h.read()
                     await bot.send_message(message.author, msg)
+                    return
                 elif args[1].startswith(('v', 'version')):
                     await bot.send_message(message.channel, check_version())
                     await bot.send_message(message.channel, check_simc())
+                    return
                 else:
                     if message.channel != channel:
                         await bot.send_message(message.channel, 'Please use the correct channel.')
@@ -366,12 +416,12 @@ async def on_message(message):
                                                    '**Queue is full, please try again later.**')
                             logger.info('Sim could not be started because queue is full.')
                             return
-                        if waiting:
-                            await bot.send_message(sims[user]['message'].channel,
-                                                   '**Waiting for simc addon data from %s.**' %
-                                                   sims[user]['message'].author.display_name)
-                            logger.info('Failed starting sim. Still waiting on data from previous sim')
-                            return
+                    if waiting:
+                        await bot.send_message(message.channel,
+                                               '**Waiting for simc addon data from %s.**' %
+                                               sims[user]['message'].author.display_name)
+                        logger.info('Failed starting sim. Still waiting on data from previous sim')
+                        return
                     user = timestr + '-' + str(message.author)
                     user_sim = {user: {'realm': simc_opts['default_realm'],
                                        'region': simc_opts['region'],
