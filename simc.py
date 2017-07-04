@@ -212,18 +212,15 @@ async def sim():
     waiting = False
     while not busy:
         busy = True
+        ptr = 'No'
         sim_user = list(sorted(sims))[0]
         filename = '%s-%s' % (sims[sim_user]['char'], sims[sim_user]['timestr'])
         link = 'Simulation: %s/sims/%s/%s.html' % (website, sims[sim_user]['char'], filename)
         message = sims[sim_user]['message']
         loop = True
-        if sims[sim_user]['ptr'] == 0:
-            ptr = 'No'
-        else:
-            ptr = 'Yes'
         scale_stats = 'agility,strength,intellect,crit_rating,haste_rating,mastery_rating,versatility_rating'
         options = 'calculate_scale_factors=%s scale_only=%s html=%ssims/%s/%s.html threads=%s iterations=%s ' \
-                  'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s ptr=%s' % (sims[sim_user]['scale'],
+                  'fight_style=%s enemy=%s apikey=%s process_priority=%s max_time=%s' % (sims[sim_user]['scale'],
                                                                                          scale_stats, htmldir,
                                                                                          sims[sim_user]['char'],
                                                                                          filename,
@@ -233,8 +230,7 @@ async def sim():
                                                                                          sims[sim_user]['enemy'],
                                                                                          api_key,
                                                                                          process_priority,
-                                                                                         sims[sim_user]['length'],
-                                                                                         sims[sim_user]['ptr'])
+                                                                                         sims[sim_user]['length'])
         if sims[sim_user]['data'] == 'addon':
             options += ' input=%s' % sims[sim_user]['addon']
         else:
@@ -244,6 +240,10 @@ async def sim():
 
         if sims[sim_user]['l_fixed'] == 1:
             options += ' vary_combat_length=0.0 fixed_time=1'
+        if sims[sim_user]['ptr'] == 1:
+            options += ' ptr=1'
+            ptr = 'Yes'
+
         await set_status()
         command = "%s %s" % (simc_opts['executable'], options)
         stout = open(os.path.join(htmldir, 'debug', 'simc.stout'), "w")
