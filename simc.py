@@ -327,9 +327,18 @@ async def sim():
                         missing = '░' * (process_check[-1].count('.'))
                         progressbar = done + missing
                         percentage = 100 - process_check[-1].count('.') * 5
+                        status = process_check[-1].split()[1]
+                        if 'sec' in process_check[-1].split()[-1] or 'min' in process_check[-1].split()[-1]:
+                            if 'min' in process_check[-1].split()[-2]:
+                                timer = ' (' + process_check[-1].split()[-2] + ' ' + process_check[-1].split()[-1] + \
+                                        ' left)'
+                            else:
+                                timer = ' (' + process_check[-1].split()[-1] + ' left)'
+                        else:
+                            timer = ''
                         try:
-                            load = await bot.edit_message(load, process_check[-1].split()[1] + ' ' + progressbar + ' ' +
-                                                          str(percentage) + '%')
+                            load = await bot.edit_message(load, status + ' ' + progressbar + ' ' +
+                                                          str(percentage) + '%' + timer)
                         except:
                             logger.warning('Failed updating progress')
                             pass
