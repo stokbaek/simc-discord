@@ -26,7 +26,8 @@
       "threads": 6,
       "process_priority": "low",
       "length": 400,
-      "data_timeout": 60
+      "data_timeout": 60,
+      "timeout": 1
     }
   ]
 }
