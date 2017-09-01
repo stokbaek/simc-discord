@@ -52,6 +52,7 @@ wait_data = False
 busy = False
 addon_data = None
 user = ''
+timeout = simc_opts['timeout']
 api_key = simc_opts['api_key']
 sims = {}
 
@@ -137,6 +138,7 @@ async def data_sim():
     global api_key
     global waiting
     global wait_data
+    failed = False
     m_temp = ''
     while not waiting:
         waiting = True
@@ -160,7 +162,7 @@ async def data_sim():
                 waiting = False
                 await set_status()
                 logger.info('No data was given to bot. Aborting sim.')
-                return
+                failed = True
             else:
                 healing_roles = ['restoration', 'holy', 'discipline', 'mistweaver']
                 for crole in healing_roles:
@@ -172,7 +174,7 @@ async def data_sim():
                         waiting = False
                         await set_status()
                         logger.info('Character is a healer. Aborting sim.')
-                        return
+                        failed = True
 
         if sims[user]['data'] != 'addon':
             api = await check_spec(sims[user]['region'], sims[user]['realm'].replace('_', '-'), sims[user]['char'])
@@ -181,14 +183,14 @@ async def data_sim():
                 waiting = False
                 del sims[user]
                 logger.info('Character is a healer. Aborting sim.')
-                return
+                failed = True
             elif not api == 'DPS' and not api == 'TANK':
                 msg = 'Something went wrong: %s' % api
                 await bot.send_message(sims[user]['message'].channel, msg)
                 waiting = False
                 del sims[user]
                 logger.warning('Simulation could not start: %s' % api)
-                return
+                failed = True
         for item in simc_opts['fightstyles']:
             if item.lower() == sims[user]['fightstyle'].lower():
                 m_temp = m_temp + '**__' + item + '__**, '
@@ -199,16 +201,21 @@ async def data_sim():
                 sims[user]['movements'] = m_temp
         if busy:
             position = len(sims) - 1
-            await bot.send_message(sims[user]['message'].channel,
-                                   'Simulation added to queue. Queue position: %s' % position)
-            await set_status()
-            logger.info('A new simulation has been added to queue')
-        bot.loop.create_task(sim())
+            if position > 0:
+                await bot.send_message(sims[user]['message'].channel,
+                                       'Simulation added to queue. Queue position: %s' % position)
+                await set_status()
+                logger.info('A new simulation has been added to queue')
+        if not failed:
+            bot.loop.create_task(sim())
+        else:
+            return
 
 async def sim():
     global sims
     global busy
     global waiting
+    running = 0
     waiting = False
     while not busy:
         busy = True
@@ -281,6 +288,23 @@ async def sim():
         load = await bot.send_message(sims[sim_user]['message'].channel, 'Simulating: Starting...')
         await asyncio.sleep(1)
         while loop:
+            running += 2
+            if running > timeout * 60:
+                await bot.edit_message(load, 'Simulation timeout')
+                process.terminate()
+                del sims[sim_user]
+                await set_status()
+                logger.warning('Simulation timeout')
+                loop = False
+                busy = False
+                while wait_data:
+                    logger.info('Wont start next sim, still waiting on data')
+                    await asyncio.sleep(1)
+                if len(sims) == 0:
+                    return
+                else:
+                    bot.loop.create_task(sim())
+
             await asyncio.sleep(1)
             with open(os.path.join(htmldir, 'debug', 'simc.stout'), errors='replace') as p:
                 process_check = p.readlines()
