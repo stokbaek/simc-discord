@@ -27,7 +27,7 @@
       "process_priority": "low",
       "length": 400,
       "data_timeout": 60,
-      "timeout": 1
+      "timeout": 1 // This is in minutes.
     }
   ]
 }
