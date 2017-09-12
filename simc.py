@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 import os
-import sys
+#import sys
 import subprocess
 import discord
 import aiohttp
@@ -457,7 +459,7 @@ async def on_message(message):
                                 for key in sims[user]:
                                     if key == 'char':
                                         sims[user]['char'] = temp[1]
-                            elif args[i].startswith(('s ', 'scaling ')):
+                            elif args[i].startswith(('s ', 'scale ')):
                                 temp = args[i].split()
                                 for key in sims[user]:
                                     if key == 'scaling':
@@ -526,6 +528,12 @@ async def on_message(message):
                         for key in sims[user]:
                             if key == 'scale':
                                 sims[user]['scale'] = 1
+                    else:
+                        await bot.send_message(message.channel,
+                                               'Unknown scaling. Use !simc -h/help for commands')
+                        del sims[user]
+                        logger.info('Unknown scaling given to bot.')
+                        return
                     if sims[user]['aoe'] == 'yes':
                         for targets in range(0, simc_opts['aoe_targets']):
                             targets += + 1
